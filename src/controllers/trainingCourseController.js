@@ -1,18 +1,31 @@
-const TrainingCourseModel = require('../models/TrainingCourseModel');
-const SisterModel = require('../models/SisterModel');
-const AuditLogModel = require('../models/AuditLogModel');
+const TrainingCourseModel = require("../models/TrainingCourseModel");
+const SisterModel = require("../models/SisterModel");
+const AuditLogModel = require("../models/AuditLogModel");
 
-const viewerRoles = ['admin', 'superior_general', 'superior_provincial', 'superior_community', 'secretary', 'viewer'];
-const editorRoles = ['admin', 'superior_general', 'superior_provincial', 'superior_community', 'secretary'];
+const viewerRoles = [
+  "admin",
+  "superior_general",
+  "superior_provincial",
+  "superior_community",
+  "secretary",
+  "viewer",
+];
+const editorRoles = [
+  "admin",
+  "superior_general",
+  "superior_provincial",
+  "superior_community",
+  "secretary",
+];
 
 const ensurePermission = (req, res, roles) => {
   if (!req.user) {
-    res.status(401).json({ message: 'Unauthorized' });
+    res.status(401).json({ message: "Unauthorized" });
     return false;
   }
 
   if (!roles.includes(req.user.role)) {
-    res.status(403).json({ message: 'Forbidden' });
+    res.status(403).json({ message: "Forbidden" });
     return false;
   }
 
@@ -24,14 +37,14 @@ const logAudit = async (req, action, recordId, oldValue, newValue) => {
     await AuditLogModel.create({
       user_id: req.user ? req.user.id : null,
       action,
-      table_name: 'training_courses',
+      table_name: "training_courses",
       record_id: recordId,
       old_value: oldValue ? JSON.stringify(oldValue) : null,
       new_value: newValue ? JSON.stringify(newValue) : null,
-      ip_address: req.ip
+      ip_address: req.ip,
     });
   } catch (error) {
-    console.error('Training course audit log failed:', error.message);
+    console.error("Training course audit log failed:", error.message);
   }
 };
 
@@ -42,14 +55,18 @@ const getCoursesBySister = async (req, res) => {
     const { sisterId } = req.params;
     const sister = await SisterModel.findById(sisterId);
     if (!sister) {
-      return res.status(404).json({ message: 'Sister not found' });
+      return res.status(404).json({ message: "Sister not found" });
     }
 
     const courses = await TrainingCourseModel.findBySisterId(sisterId);
-    return res.status(200).json({ sister: { id: sister.id, code: sister.code }, courses });
+    return res
+      .status(200)
+      .json({ sister: { id: sister.id, code: sister.code }, courses });
   } catch (error) {
-    console.error('getCoursesBySister error:', error.message);
-    return res.status(500).json({ message: 'Failed to fetch training courses' });
+    console.error("getCoursesBySister error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch training courses" });
   }
 };
 
@@ -57,14 +74,24 @@ const addCourse = async (req, res) => {
   try {
     if (!ensurePermission(req, res, editorRoles)) return;
 
-    const { sister_id: sisterId, course_name: courseName, organizer, start_date: startDate, end_date: endDate, content, notes } = req.body;
+    const {
+      sister_id: sisterId,
+      course_name: courseName,
+      organizer,
+      start_date: startDate,
+      end_date: endDate,
+      content,
+      notes,
+    } = req.body;
     if (!sisterId || !courseName) {
-      return res.status(400).json({ message: 'sister_id and course_name are required' });
+      return res
+        .status(400)
+        .json({ message: "sister_id and course_name are required" });
     }
 
     const sister = await SisterModel.findById(sisterId);
     if (!sister) {
-      return res.status(404).json({ message: 'Sister not found' });
+      return res.status(404).json({ message: "Sister not found" });
     }
 
     const payload = {
@@ -74,16 +101,16 @@ const addCourse = async (req, res) => {
       start_date: startDate || null,
       end_date: endDate || null,
       content: content || null,
-      notes: notes || null
+      notes: notes || null,
     };
 
     const created = await TrainingCourseModel.create(payload);
-    await logAudit(req, 'CREATE', created.id, null, created);
+    await logAudit(req, "CREATE", created.id, null, created);
 
     return res.status(201).json({ course: created });
   } catch (error) {
-    console.error('addCourse error:', error.message);
-    return res.status(500).json({ message: 'Failed to add course' });
+    console.error("addCourse error:", error.message);
+    return res.status(500).json({ message: "Failed to add course" });
   }
 };
 
@@ -94,23 +121,23 @@ const updateCourse = async (req, res) => {
     const { id } = req.params;
     const existing = await TrainingCourseModel.findById(id);
     if (!existing) {
-      return res.status(404).json({ message: 'Course not found' });
+      return res.status(404).json({ message: "Course not found" });
     }
 
     if (req.body.sister_id) {
       const sister = await SisterModel.findById(req.body.sister_id);
       if (!sister) {
-        return res.status(404).json({ message: 'Sister not found' });
+        return res.status(404).json({ message: "Sister not found" });
       }
     }
 
     const updated = await TrainingCourseModel.update(id, req.body);
-    await logAudit(req, 'UPDATE', id, existing, updated);
+    await logAudit(req, "UPDATE", id, existing, updated);
 
     return res.status(200).json({ course: updated });
   } catch (error) {
-    console.error('updateCourse error:', error.message);
-    return res.status(500).json({ message: 'Failed to update course' });
+    console.error("updateCourse error:", error.message);
+    return res.status(500).json({ message: "Failed to update course" });
   }
 };
 
@@ -121,19 +148,19 @@ const deleteCourse = async (req, res) => {
     const { id } = req.params;
     const existing = await TrainingCourseModel.findById(id);
     if (!existing) {
-      return res.status(404).json({ message: 'Course not found' });
+      return res.status(404).json({ message: "Course not found" });
     }
 
     const deleted = await TrainingCourseModel.delete(id);
     if (!deleted) {
-      return res.status(500).json({ message: 'Failed to delete course' });
+      return res.status(500).json({ message: "Failed to delete course" });
     }
 
-    await logAudit(req, 'DELETE', id, existing, null);
-    return res.status(200).json({ message: 'Course deleted successfully' });
+    await logAudit(req, "DELETE", id, existing, null);
+    return res.status(200).json({ message: "Course deleted successfully" });
   } catch (error) {
-    console.error('deleteCourse error:', error.message);
-    return res.status(500).json({ message: 'Failed to delete course' });
+    console.error("deleteCourse error:", error.message);
+    return res.status(500).json({ message: "Failed to delete course" });
   }
 };
 
@@ -145,21 +172,21 @@ const getAllCourses = async (req, res) => {
     const params = [];
 
     if (req.query.year) {
-      filters.push('(YEAR(start_date) = ? OR YEAR(end_date) = ?)');
+      filters.push("(YEAR(start_date) = ? OR YEAR(end_date) = ?)");
       params.push(req.query.year, req.query.year);
     }
 
     if (req.query.organizer) {
-      filters.push('organizer LIKE ?');
+      filters.push("organizer LIKE ?");
       params.push(`%${req.query.organizer}%`);
     }
 
     if (req.query.name) {
-      filters.push('course_name LIKE ?');
+      filters.push("course_name LIKE ?");
       params.push(`%${req.query.name}%`);
     }
 
-    const whereClause = filters.length ? `WHERE ${filters.join(' AND ')}` : '';
+    const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
 
     const courses = await TrainingCourseModel.executeQuery(
       `SELECT tc.*, s.religious_name
@@ -172,8 +199,8 @@ const getAllCourses = async (req, res) => {
 
     return res.status(200).json({ data: courses });
   } catch (error) {
-    console.error('getAllCourses error:', error.message);
-    return res.status(500).json({ message: 'Failed to fetch courses' });
+    console.error("getAllCourses error:", error.message);
+    return res.status(500).json({ message: "Failed to fetch courses" });
   }
 };
 
@@ -182,5 +209,5 @@ module.exports = {
   addCourse,
   updateCourse,
   deleteCourse,
-  getAllCourses
+  getAllCourses,
 };
