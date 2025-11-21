@@ -1,8 +1,8 @@
 const express = require("express");
-const vocationJourneyController = require("../controllers/vocationJourneyController");
+const communityController = require("../controllers/communityController");
 const { authenticateToken, authorize } = require("../middlewares/auth");
 const {
-  validateVocationJourneyCreate,
+  validateCommunityCreate,
   handleValidationErrors,
 } = require("../middlewares/validation");
 
@@ -18,28 +18,30 @@ const editorRoles = [
 
 router.use(authenticateToken);
 
-router.get("/sister/:sisterId", vocationJourneyController.getJourneyBySister);
-
-router.get("/statistics", vocationJourneyController.getStatisticsByStage);
+router.get("/", communityController.getAllCommunities);
+router.get("/:id", communityController.getCommunityById);
+router.get("/:id/members", communityController.getCommunityMembers);
 
 router.post(
   "/",
   authorize(...editorRoles),
-  validateVocationJourneyCreate,
+  validateCommunityCreate,
   handleValidationErrors,
-  vocationJourneyController.addJourneyStage
+  communityController.createCommunity
 );
 
 router.put(
-  "/:stageId",
+  "/:id",
   authorize(...editorRoles),
-  vocationJourneyController.updateJourneyStage
+  validateCommunityCreate,
+  handleValidationErrors,
+  communityController.updateCommunity
 );
 
 router.delete(
-  "/:stageId",
+  "/:id",
   authorize(...editorRoles),
-  vocationJourneyController.deleteJourneyStage
+  communityController.deleteCommunity
 );
 
 module.exports = router;
