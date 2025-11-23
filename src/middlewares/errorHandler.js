@@ -76,23 +76,29 @@ const logAuditIfCritical = async (req, error) => {
 };
 
 const classifyError = (error) => {
+  const errObj = {
+    message: error.message,
+    stack: error.stack,
+    ...error,
+  };
+
   if (error.type) {
-    return error;
+    return errObj;
   }
 
   if (error.name === "UnauthorizedError") {
-    return { ...error, type: ERROR_TYPES.AUTHENTICATION };
+    return { ...errObj, type: ERROR_TYPES.AUTHENTICATION };
   }
 
   if (error.name === "ValidationError") {
-    return { ...error, type: ERROR_TYPES.VALIDATION };
+    return { ...errObj, type: ERROR_TYPES.VALIDATION };
   }
 
   if (error.code && error.code.startsWith("ER_")) {
-    return { ...error, type: ERROR_TYPES.DATABASE };
+    return { ...errObj, type: ERROR_TYPES.DATABASE };
   }
 
-  return { ...error, type: ERROR_TYPES.SERVER };
+  return { ...errObj, type: ERROR_TYPES.SERVER };
 };
 
 const notFound = (req, res, next) => {

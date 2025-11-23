@@ -1,9 +1,9 @@
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
-const mongoSanitize = require("express-mongo-sanitize");
-const xssClean = require("xss-clean");
-const hpp = require("hpp");
+// const mongoSanitize = require("express-mongo-sanitize");
+// const xssClean = require("xss-clean");
+// const hpp = require("hpp");
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
@@ -20,10 +20,11 @@ const parseAllowedOrigins = () => {
 
 const buildCorsOptions = () => {
   const allowedOrigins = parseAllowedOrigins();
+  const allowAllOrigins = allowedOrigins.includes("*");
 
   return {
     origin: (origin, callback) => {
-      if (!origin) {
+      if (!origin || allowAllOrigins) {
         return callback(null, true);
       }
 
@@ -48,7 +49,8 @@ const buildCorsOptions = () => {
 
 const buildHelmetConfig = () => {
   const allowedOrigins = parseAllowedOrigins();
-  const connectSrc = ["'self'", ...allowedOrigins];
+  const allowAllOrigins = allowedOrigins.includes("*");
+  const connectSrc = allowAllOrigins ? ["*"] : ["'self'", ...allowedOrigins];
 
   return {
     contentSecurityPolicy: {
@@ -95,9 +97,9 @@ const applySecurityMiddlewares = (app) => {
 
   app.use(cors(corsOptions));
   app.use(helmet(helmetConfig));
-  app.use(hpp());
-  app.use(mongoSanitize());
-  app.use(xssClean());
+  // app.use(hpp());
+  // app.use(mongoSanitize());
+  // app.use(xssClean());
   app.use(generalRateLimiter);
   app.use("/api/auth/login", loginRateLimiter);
 };

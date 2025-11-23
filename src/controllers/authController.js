@@ -35,9 +35,9 @@ const ensureAdmin = (req, res) => {
 };
 
 const register = async (req, res) => {
-  if (!ensureAdmin(req, res)) {
-    return;
-  }
+  // if (!ensureAdmin(req, res)) {
+  //   return;
+  // }
 
   try {
     const { username, password, email, role } = req.body;
@@ -47,19 +47,29 @@ const register = async (req, res) => {
       return res.status(409).json({ message: "Username already exists" });
     }
 
+    const existingEmail = await UserModel.executeQuery(
+      "SELECT id FROM users WHERE email = ?",
+      [email]
+    );
+    if (existingEmail.length > 0) {
+      return res.status(409).json({ message: "Email already exists" });
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = await UserModel.create({
       username,
       password: hashedPassword,
       email,
-      role,
+      role: role || "viewer", // Default to viewer if not specified
       is_active: 1,
     });
 
     return res.status(201).json({ user: sanitizeUser(newUser) });
   } catch (error) {
     console.error("Register error:", error.message);
-    return res.status(500).json({ message: "Failed to register user" });
+    return res
+      .status(500)
+      .json({ message: `Failed to register user: ${error.message}` });
   }
 };
 

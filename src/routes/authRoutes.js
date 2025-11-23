@@ -21,8 +21,8 @@ const validateChangePassword = [
 
 router.post(
   "/register",
-  authenticateToken,
-  authorize("admin"),
+  // authenticateToken, // Temporarily disabled for public signup
+  // authorize("admin"), // Temporarily disabled for public signup
   ...validateUserCreate,
   handleValidationErrors,
   authController.register
