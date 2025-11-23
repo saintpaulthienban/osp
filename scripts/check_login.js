@@ -1,9 +1,9 @@
-const mysql = require('mysql2/promise');
-const bcrypt = require('bcryptjs');
-const path = require('path');
-const dotenv = require('dotenv');
+const mysql = require("mysql2/promise");
+const bcrypt = require("bcryptjs");
+const path = require("path");
+const dotenv = require("dotenv");
 
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
 
@@ -18,13 +18,13 @@ async function checkUser() {
 
   try {
     const connection = await mysql.createConnection(config);
-    console.log('Connected to MySQL server.');
+    console.log("Connected to MySQL server.");
 
-    const username = 'admin';
-    const passwordToCheck = 'password123';
+    const username = "admin";
+    const passwordToCheck = "password123";
 
     const [rows] = await connection.execute(
-      'SELECT * FROM users WHERE username = ?',
+      "SELECT * FROM users WHERE username = ?",
       [username]
     );
 
@@ -33,19 +33,19 @@ async function checkUser() {
     } else {
       const user = rows[0];
       console.log(`User '${username}' FOUND.`);
-      console.log('User details:', { ...user, password: '[HIDDEN]' });
-      
+      console.log("User details:", { ...user, password: "[HIDDEN]" });
+
       const isMatch = await bcrypt.compare(passwordToCheck, user.password);
       console.log(`Password '${passwordToCheck}' match: ${isMatch}`);
-      
+
       if (!user.is_active) {
-          console.log('WARNING: User is NOT active.');
+        console.log("WARNING: User is NOT active.");
       }
     }
 
     await connection.end();
   } catch (err) {
-    console.error('Error checking user:', err);
+    console.error("Error checking user:", err);
   }
 }
 
