@@ -45,11 +45,28 @@ const getPagination = (req) => {
   return { page, limit, offset };
 };
 
-const generateSisterCode = () =>
-  `SIS-${Date.now().toString(36)}-${Math.random()
-    .toString(36)
-    .slice(2, 6)
-    .toUpperCase()}`;
+const generateSisterCode = async () => {
+  try {
+    const rows = await SisterModel.executeQuery(
+      "SELECT code FROM sisters WHERE code LIKE 'NT-%' ORDER BY LENGTH(code) DESC, code DESC LIMIT 1"
+    );
+
+    let nextNum = 1;
+    if (rows.length > 0 && rows[0].code) {
+      const lastCode = rows[0].code;
+      const parts = lastCode.split("-");
+      if (parts.length === 2 && !isNaN(parts[1])) {
+        nextNum = parseInt(parts[1], 10) + 1;
+      }
+    }
+
+    return `NT-${String(nextNum).padStart(3, "0")}`;
+  } catch (error) {
+    console.error("Error generating sister code:", error);
+    // Fallback to timestamp-based to ensure uniqueness if DB query fails
+    return `NT-${Date.now()}`;
+  }
+};
 
 const logAudit = async (req, action, recordId, oldValue, newValue) => {
   try {
@@ -182,9 +199,11 @@ const createSister = async (req, res) => {
       return;
     }
 
+    const code = req.body.code || (await generateSisterCode());
+
     const payload = {
       ...req.body,
-      code: req.body.code || generateSisterCode(),
+      code,
       status: req.body.status || "active",
       created_by: req.user ? req.user.id : null,
     };
