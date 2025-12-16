@@ -250,35 +250,6 @@ const ChatbotWidget = () => {
                 </Button>
               </div>
             </Form.Group>
-
-            <div className="quick-actions">
-              <button
-                className="quick-action-btn"
-                onClick={() => setInputMessage("Có bao nhiêu nữ tu?")}
-              >
-                📊 Số lượng
-              </button>
-              <button
-                className="quick-action-btn"
-                onClick={() => setInputMessage("Danh sách các cộng đoàn")}
-              >
-                🏠 Cộng đoàn
-              </button>
-              <button
-                className="quick-action-btn"
-                onClick={() =>
-                  setInputMessage("Thống kê theo giai đoạn ơn gọi")
-                }
-              >
-                📍 Giai đoạn
-              </button>
-              <button
-                className="quick-action-btn"
-                onClick={() => setInputMessage("Hướng dẫn sử dụng")}
-              >
-                ❓ Trợ giúp
-              </button>
-            </div>
           </Card.Footer>
         </Card>
       )}

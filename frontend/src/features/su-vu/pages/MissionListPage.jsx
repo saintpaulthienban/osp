@@ -51,7 +51,29 @@ const MissionListPage = () => {
   const fetchMissions = async () => {
     try {
       setLoading(true);
-      const params = table.getTableParams();
+      // Build params manually to use debouncedSearch instead of searchTerm
+      const params = {
+        page: table.currentPage,
+        limit: table.pageSize,
+        sortBy: table.sortBy,
+        sortOrder: table.sortOrder,
+        ...table.filters,
+      };
+
+      // Only add search if there's a value (use debouncedSearch)
+      if (debouncedSearch && debouncedSearch.trim()) {
+        params.search = debouncedSearch.trim();
+      }
+
+      // Add filter params
+      if (table.filters?.field) {
+        params.field = table.filters.field;
+      }
+      if (table.filters?.status) {
+        params.status = table.filters.status;
+      }
+
+      console.log("Fetching missions with params:", params);
 
       let response;
       if (sisterId) {
@@ -189,7 +211,11 @@ const MissionListPage = () => {
     const getValue = (item) => {
       switch (table.sortBy) {
         case "religious_name":
-          return item.religious_name || item.sister_name || "";
+          // Sort by full name (religious_name + birth_name)
+          return [item.religious_name, item.birth_name || item.sister_name]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
         case "specific_role":
           return item.specific_role || "";
         case "organization":
@@ -467,9 +493,12 @@ const MissionListPage = () => {
                               1}
                           </td>
                           <td className="fw-semibold text-primary">
-                            {mission.religious_name ||
-                              mission.sister_name ||
-                              "N/A"}
+                            {[
+                              mission.religious_name,
+                              mission.birth_name || mission.sister_name,
+                            ]
+                              .filter(Boolean)
+                              .join(" ") || "N/A"}
                           </td>
                           <td>{mission.specific_role || "-"}</td>
                           <td>{mission.organization || "-"}</td>

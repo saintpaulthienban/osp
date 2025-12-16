@@ -48,13 +48,42 @@ const logAudit = async (req, action, recordId, oldValue, newValue) => {
 
 const getAllMissions = async (req, res) => {
   try {
-    const { field } = req.query;
+    const { field, search, status, page = 1, limit = 20 } = req.query;
     const whereClauses = [];
     const params = [];
 
+    // Filter by field
     if (field) {
       whereClauses.push("m.field = ?");
       params.push(field);
+    }
+
+    // Filter by status (active/completed based on end_date)
+    if (status === "active") {
+      whereClauses.push("(m.end_date IS NULL OR m.end_date >= CURDATE())");
+    } else if (status === "completed") {
+      whereClauses.push("(m.end_date IS NOT NULL AND m.end_date < CURDATE())");
+    }
+
+    // Search across multiple fields
+    if (search && search.trim()) {
+      const searchPattern = `%${search.trim()}%`;
+      whereClauses.push(`(
+        s.saint_name LIKE ? 
+        OR s.birth_name LIKE ?
+        OR CONCAT(COALESCE(s.saint_name, ''), ' ', COALESCE(s.birth_name, '')) LIKE ?
+        OR m.specific_role LIKE ?
+        OR m.field LIKE ?
+        OR m.notes LIKE ?
+      )`);
+      params.push(
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern,
+        searchPattern
+      );
     }
 
     // Apply data scope filter - missions are related to sisters
@@ -76,16 +105,35 @@ const getAllMissions = async (req, res) => {
       ? `WHERE ${whereClauses.join(" AND ")}`
       : "";
 
+    // Get total count for pagination
+    const countQuery = `
+      SELECT COUNT(*) as total
+      FROM missions m
+      INNER JOIN sisters s ON s.id = m.sister_id
+      ${whereClause}
+    `;
+    const countResult = await MissionModel.executeQuery(countQuery, params);
+    const total = countResult[0]?.total || 0;
+
+    // Get paginated results
+    const offset = (parseInt(page) - 1) * parseInt(limit);
     const missions = await MissionModel.executeQuery(
-      `SELECT m.*, s.saint_name as religious_name, s.birth_name as sister_name
+      `SELECT m.*, s.saint_name as religious_name, s.birth_name, s.birth_name as sister_name
        FROM missions m
        INNER JOIN sisters s ON s.id = m.sister_id
        ${whereClause}
-       ORDER BY m.start_date DESC`,
-      params
+       ORDER BY m.start_date DESC
+       LIMIT ? OFFSET ?`,
+      [...params, parseInt(limit), offset]
     );
 
-    return res.status(200).json({ data: missions });
+    return res.status(200).json({
+      data: missions,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / parseInt(limit)),
+    });
   } catch (error) {
     console.error("getAllMissions error:", error.message);
     return res.status(500).json({ message: "Failed to fetch missions" });
