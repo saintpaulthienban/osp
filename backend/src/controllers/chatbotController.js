@@ -3,15 +3,47 @@
 const { v4: uuidv4 } = require("uuid");
 const ChatConversationModel = require("../models/ChatConversationModel");
 const chatbotService = require("../services/chatbotService");
-const geminiService = require("../services/geminiService");
+const openaiService = require("../services/openaiService");
+
+// ============== Helper Functions ==============
+
+/**
+ * Post-process AI response for better formatting
+ */
+function postProcessResponse(response, analysis) {
+  let processed = response;
+
+  // Clean up excessive whitespace
+  processed = processed.replace(/\n{3,}/g, "\n\n");
+
+  // Ensure proper Vietnamese formatting
+  processed = processed.replace(/(\d+)\/(\d+)\/(\d+)/g, (match, d, m, y) => {
+    if (y.length === 4) return match;
+    return `${d}/${m}/${y}`;
+  });
+
+  // Add helpful follow-up suggestions for certain intents
+  if (
+    analysis.intent === "statistics" &&
+    !processed.includes("Bạn có thể hỏi")
+  ) {
+    processed +=
+      "\n\n💡 *Bạn có thể hỏi thêm về chi tiết của từng cộng đoàn hoặc giai đoạn cụ thể.*";
+  }
+
+  return processed.trim();
+}
+
+// ============== Controller Class ==============
 
 class ChatbotController {
   /**
-   * Handle chat message with enhanced understanding
+   * Handle chat message with AI-first analysis
+   * Flow: User Question → ChatGPT Analysis → Database Query → ChatGPT Response
    */
   async chat(req, res) {
     try {
-      console.log("=== CHATBOT REQUEST ===");
+      console.log("=== CHATBOT REQUEST (AI-First Flow) ===");
       const { message, conversation_id } = req.body;
       console.log("Message:", message);
 
@@ -25,34 +57,98 @@ class ChatbotController {
       // Normalize and clean message
       const cleanedMessage = message.trim();
 
-      // 1. Analyze message with enhanced intent detection
-      console.log("Step 1: Analyzing message...");
-      const analysis = chatbotService.analyzeMessage(cleanedMessage);
-      console.log("Analysis:", JSON.stringify(analysis, null, 2));
+      // ========== STEP 1: AI Analysis (Primary) ==========
+      console.log("Step 1: AI-powered message analysis...");
+      let analysis = await openaiService.analyzeWithAI(cleanedMessage);
 
-      // 2. Extract entities with fuzzy matching
-      console.log("Step 2: Extracting entities...");
-      const entities = await chatbotService.extractEntities(cleanedMessage);
-      analysis.entities = entities;
-      console.log("Entities:", JSON.stringify(entities, null, 2));
+      // Fallback to keyword-based analysis if AI fails
+      if (!analysis) {
+        console.log("AI analysis failed, falling back to keyword matching...");
+        analysis = chatbotService.analyzeMessage(cleanedMessage);
+        analysis.source = "keyword";
+      }
+      console.log("Analysis result:", JSON.stringify(analysis, null, 2));
 
-      // 3. Smart intent adjustment based on entities and question type
-      this.adjustIntentBasedOnContext(analysis, entities);
-      console.log("Adjusted intent:", analysis.intent);
+      // ========== STEP 2: Extract/Enhance Entities ==========
+      console.log("Step 2: Extracting database entities...");
+      const dbEntities = await chatbotService.extractEntities(cleanedMessage);
 
-      // 4. Retrieve context from database with enhanced queries
-      console.log("Step 3: Retrieving context...");
-      const context = await chatbotService.retrieveContext(analysis, entities);
+      // Merge AI entities with DB entities (DB entities have priority for IDs)
+      const entities = {
+        ...analysis.entities,
+        ...dbEntities,
+        // Keep AI-detected info that DB might miss
+        age_question:
+          analysis.entities?.age_question ||
+          /tuổi|bao nhiêu tuổi/i.test(cleanedMessage),
+        count_question:
+          analysis.entities?.count_question ||
+          /bao nhiêu|mấy|số lượng/i.test(cleanedMessage),
+        list_question:
+          analysis.entities?.list_question ||
+          /danh sách|liệt kê/i.test(cleanedMessage),
+      };
+
+      // If AI found a person name but DB didn't find sister_id, try additional search
+      if (analysis.entities?.person_name && !entities.sister_id) {
+        console.log(
+          "Trying to find sister by AI-detected name:",
+          analysis.entities.person_name
+        );
+        const additionalSearch = await chatbotService.searchSisterByName(
+          analysis.entities.person_name
+        );
+        if (additionalSearch) {
+          entities.sister_id = additionalSearch.id;
+          entities.sister_name = additionalSearch.birth_name;
+          entities.saint_name = additionalSearch.saint_name;
+        }
+      }
+
+      console.log("Combined entities:", JSON.stringify(entities, null, 2));
+
+      // ========== STEP 3: Smart Intent Refinement ==========
+      // Refine intent based on both AI analysis and extracted entities
+      if (entities.sister_id && analysis.intent === "general") {
+        analysis.intent = "sister_info";
+        console.log("Intent refined to sister_info (found sister in DB)");
+      }
+      if (entities.community_id && analysis.intent === "general") {
+        analysis.intent = "community_info";
+        console.log("Intent refined to community_info (found community in DB)");
+      }
+      if (entities.count_question && analysis.intent === "general") {
+        analysis.intent = "statistics";
+        console.log("Intent refined to statistics (count question)");
+      }
+
+      // ========== STEP 4: Database Context Retrieval ==========
+      console.log("Step 3: Retrieving database context...");
+      let context = await chatbotService.retrieveContext(analysis, entities);
+
+      // If no context found but we have entities, try broader search
+      if (
+        (!context.text || context.text.length < 50) &&
+        analysis.intent !== "greeting" &&
+        analysis.intent !== "help"
+      ) {
+        console.log("Limited context, trying comprehensive search...");
+        context = await chatbotService.getComprehensiveContext(
+          cleanedMessage,
+          entities
+        );
+      }
+
       console.log("Context retrieved, length:", context.text?.length || 0);
 
-      // 5. Get conversation history for continuity
+      // ========== STEP 5: Conversation History ==========
       console.log("Step 4: Getting conversation history...");
       let conversationHistory = [];
       if (conversation_id) {
         try {
           const history = await ChatConversationModel.getByConversationId(
             conversation_id,
-            5 // Last 5 exchanges
+            5
           );
           conversationHistory = history.flatMap((h) => [
             { role: "user", content: h.user_message },
@@ -63,20 +159,9 @@ class ChatbotController {
         }
       }
 
-      // 6. Check for special intents that don't need AI
-      if (analysis.intent === "greeting") {
-        const greetingResponse = this.handleGreeting(req.user);
-        return res.json({
-          success: true,
-          response: greetingResponse,
-          conversation_id: conversation_id || uuidv4(),
-          sources: [],
-        });
-      }
-
-      // 7. Call Gemini AI with enhanced context
-      console.log("Step 5: Calling Gemini...");
-      const aiResponse = await geminiService.chat(
+      // ========== STEP 6: Generate AI Response ==========
+      console.log("Step 5: Generating AI response with context...");
+      const aiResponse = await openaiService.chat(
         cleanedMessage,
         context,
         conversationHistory
@@ -85,20 +170,28 @@ class ChatbotController {
 
       if (!aiResponse.success) {
         console.log("AI Error:", aiResponse.error);
+        // If AI fails but we have context, return context directly
+        if (context.text && context.text.length > 50) {
+          return res.json({
+            success: true,
+            response: `📊 **Thông tin từ hệ thống:**\n\n${context.text}`,
+            conversation_id: conversation_id || uuidv4(),
+            sources: context.sources || [],
+          });
+        }
         return res.status(500).json({
           success: false,
           error: aiResponse.error || "Failed to get AI response",
         });
       }
 
-      // 8. Post-process response
-      const processedResponse = this.postProcessResponse(
+      // ========== STEP 7: Post-process & Return ==========
+      const processedResponse = postProcessResponse(
         aiResponse.message,
         analysis
       );
 
-      // 9. Save conversation for future context
-      console.log("Step 6: Saving conversation...");
+      // Save conversation
       const newConversationId = conversation_id || uuidv4();
       try {
         await ChatConversationModel.create({
@@ -118,8 +211,6 @@ class ChatbotController {
         console.warn("Could not save conversation:", saveError.message);
       }
 
-      // 10. Return response
-      console.log("Step 7: Sending response...");
       return res.json({
         success: true,
         response: processedResponse,
@@ -128,7 +219,7 @@ class ChatbotController {
         metadata: {
           intent: analysis.intent,
           confidence: analysis.confidence,
-          questionType: analysis.questionType,
+          analysisSource: analysis.source,
         },
       });
     } catch (error) {
@@ -138,86 +229,6 @@ class ChatbotController {
         error: "Xin lỗi, có lỗi xảy ra. Vui lòng thử lại.",
       });
     }
-  }
-
-  /**
-   * Adjust intent based on context clues
-   */
-  adjustIntentBasedOnContext(analysis, entities) {
-    // If found specific sister, prioritize sister_info
-    if (entities.sister_id && analysis.intent === "general") {
-      analysis.intent = "sister_info";
-      console.log("Intent auto-adjusted to sister_info (found sister)");
-    }
-
-    // If found specific community, prioritize community_info
-    if (
-      entities.community_id &&
-      analysis.intent === "general" &&
-      !entities.sister_id
-    ) {
-      analysis.intent = "community_info";
-      console.log("Intent auto-adjusted to community_info (found community)");
-    }
-
-    // If found stage, might be journey_info
-    if (entities.stage && analysis.intent === "general") {
-      analysis.intent = "journey_info";
-      console.log("Intent auto-adjusted to journey_info (found stage)");
-    }
-
-    // Count questions should be statistics
-    if (analysis.questionType === "count" && analysis.intent === "general") {
-      analysis.intent = "statistics";
-      console.log("Intent auto-adjusted to statistics (count question)");
-    }
-
-    // List questions might need specific handling
-    if (analysis.questionType === "list" && analysis.intent === "general") {
-      if (analysis.keywords.some((k) => /nữ tu|chị|sơ/i.test(k))) {
-        analysis.intent = "sister_info";
-      } else if (analysis.keywords.some((k) => /cộng đoàn/i.test(k))) {
-        analysis.intent = "community_info";
-      }
-    }
-  }
-
-  /**
-   * Handle greeting messages
-   */
-  handleGreeting(user) {
-    const greetings = [
-      `Xin chào ${user?.full_name || "bạn"}! 👋\n\nTôi là trợ lý AI của hệ thống quản lý Hội Dòng. Tôi có thể giúp bạn:\n\n📋 Tìm thông tin về nữ tu\n📍 Xem hành trình ơn gọi\n🏠 Tra cứu cộng đoàn\n📊 Xem thống kê\n\nBạn cần tôi giúp gì?`,
-      `Chào ${user?.full_name || "bạn"}! 🙏\n\nTôi sẵn sàng hỗ trợ bạn tra cứu thông tin về Hội Dòng. Hãy hỏi tôi bất cứ điều gì nhé!`,
-    ];
-    return greetings[Math.floor(Math.random() * greetings.length)];
-  }
-
-  /**
-   * Post-process AI response for better formatting
-   */
-  postProcessResponse(response, analysis) {
-    let processed = response;
-
-    // Clean up excessive whitespace
-    processed = processed.replace(/\n{3,}/g, "\n\n");
-
-    // Ensure proper Vietnamese formatting
-    processed = processed.replace(/(\d+)\/(\d+)\/(\d+)/g, (match, d, m, y) => {
-      if (y.length === 4) return match;
-      return `${d}/${m}/${y}`;
-    });
-
-    // Add helpful follow-up suggestions for certain intents
-    if (
-      analysis.intent === "statistics" &&
-      !processed.includes("Bạn có thể hỏi")
-    ) {
-      processed +=
-        "\n\n💡 *Bạn có thể hỏi thêm về chi tiết của từng cộng đoàn hoặc giai đoạn cụ thể.*";
-    }
-
-    return processed.trim();
   }
 
   /**

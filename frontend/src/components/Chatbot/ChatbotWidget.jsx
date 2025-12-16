@@ -266,7 +266,9 @@ const ChatbotWidget = () => {
               </button>
               <button
                 className="quick-action-btn"
-                onClick={() => setInputMessage("Thống kê theo giai đoạn ơn gọi")}
+                onClick={() =>
+                  setInputMessage("Thống kê theo giai đoạn ơn gọi")
+                }
               >
                 📍 Giai đoạn
               </button>

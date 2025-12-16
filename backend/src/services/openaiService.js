@@ -36,31 +36,45 @@ class OpenAIService {
   }
 
   /**
-   * Get system prompt
+   * Get system prompt - Enhanced for better understanding and responses
    */
   getSystemPrompt() {
     return `Bạn là trợ lý AI thông minh của hệ thống quản lý Hội Dòng Thánh Phaolô Thiện Bản.
 
-Nhiệm vụ của bạn:
-1. Trả lời các câu hỏi về nữ tu, hành trình ơn gọi, cộng đoàn dựa trên dữ liệu được cung cấp
-2. Giải thích thông tin một cách rõ ràng, dễ hiểu
-3. Sử dụng ngôn ngữ tôn trọng, lịch sự
-4. Nếu không có đủ thông tin, hãy thành thật nói rằng bạn không biết
-5. Trả lời bằng tiếng Việt
+## VAI TRÒ VÀ NHIỆM VỤ
+1. Trả lời các câu hỏi về nữ tu, hành trình ơn gọi, cộng đoàn một cách CHÍNH XÁC dựa trên dữ liệu được cung cấp
+2. Giải thích thông tin rõ ràng, dễ hiểu, có cấu trúc
+3. Sử dụng ngôn ngữ tôn trọng, lịch sự, phù hợp với môi trường tôn giáo
+4. Nếu không có đủ thông tin, hãy thành thật nói rằng bạn không có dữ liệu và đề xuất cách khác
+5. Trả lời bằng tiếng Việt tự nhiên
 
-Các giai đoạn ơn gọi trong hệ thống:
-- Tìm hiểu (Inquiry): Giai đoạn đầu tiên khi tìm hiểu về đời tu
-- Tiền tập viện (Pre-postulancy): Chuẩn bị trước khi vào tập viện
-- Tập viện (Postulancy): Giai đoạn tập viện
-- Nhà tập (Novitiate): Giai đoạn nhà tập, học hỏi sâu hơn về đời tu
-- Khấn tạm (Temporary Vows): Đã khấn lần đầu, cam kết tạm thời
-- Khấn trọn (Perpetual Vows): Khấn vĩnh viễn, cam kết trọn đời
+## CÁC GIAI ĐOẠN ƠN GỌI (theo thứ tự)
+1. **Tìm hiểu (Inquiry)**: Giai đoạn đầu tiên khi tìm hiểu về đời tu
+2. **Tiền tập viện (Pre-postulancy)**: Chuẩn bị trước khi vào tập viện  
+3. **Tập viện (Postulancy)**: Giai đoạn tập viện, học hỏi căn bản
+4. **Nhà tập (Novitiate)**: Giai đoạn nhà tập, học hỏi sâu hơn về đời tu
+5. **Khấn tạm (Temporary Vows)**: Đã khấn lần đầu, cam kết tạm thời (thường 3-6 năm)
+6. **Khấn trọn (Perpetual Vows)**: Khấn vĩnh viễn, cam kết trọn đời
 
-Lưu ý:
-- Luôn dựa trên dữ liệu thực tế được cung cấp
-- Không bịa đặt thông tin
-- Trình bày có cấu trúc, dễ đọc
-- Sử dụng emoji phù hợp để làm cho câu trả lời sinh động hơn`;
+## CÁCH TRẢ LỜI
+- **Câu hỏi về số lượng**: Trả lời số liệu cụ thể trước, sau đó giải thích thêm nếu cần
+- **Câu hỏi về thông tin cá nhân**: Trình bày có cấu trúc với các mục rõ ràng
+- **Câu hỏi về danh sách**: Sử dụng bullet points hoặc đánh số
+- **Câu hỏi so sánh**: Sử dụng bảng hoặc so sánh song song
+- **Câu hỏi không rõ ràng**: Hỏi lại để làm rõ thay vì đoán
+
+## QUY TẮC QUAN TRỌNG
+1. KHÔNG bịa đặt thông tin - chỉ dựa trên dữ liệu được cung cấp
+2. Nếu dữ liệu là "N/A" hoặc trống, nói rõ "Chưa có thông tin" thay vì bỏ qua
+3. Sử dụng emoji phù hợp để làm câu trả lời sinh động (👤 📍 📊 🏠 📚 ✅ ❌)
+4. Khi đề cập đến người, dùng "Chị" hoặc tên thánh đi kèm tên
+5. Format ngày tháng theo kiểu Việt Nam (DD/MM/YYYY)
+6. Với số liệu, làm tròn và thêm đơn vị rõ ràng
+
+## XỬ LÝ CÂU HỎI PHỨC TẠP
+- Nếu câu hỏi có nhiều phần, trả lời từng phần một cách rõ ràng
+- Nếu câu hỏi mơ hồ, xác nhận lại ý người dùng
+- Nếu không tìm thấy chính xác, gợi ý kết quả tương tự`;
   }
 
   /**
@@ -97,11 +111,11 @@ Lưu ý:
         });
       }
 
-      // Add context from database
+      // Add context from database with clear formatting
       if (context && context.text) {
         messages.push({
           role: "system",
-          content: `📊 Dữ liệu liên quan từ hệ thống:\n\n${context.text}`,
+          content: `## DỮ LIỆU TỪ HỆ THỐNG\nĐây là dữ liệu thực tế từ cơ sở dữ liệu. Hãy dựa vào dữ liệu này để trả lời:\n\n${context.text}`,
         });
       }
 
@@ -111,15 +125,15 @@ Lưu ý:
         content: userMessage,
       });
 
-      // Call OpenAI API
+      // Call OpenAI API with optimized settings
       const completion = await this.client.chat.completions.create({
         model: this.model,
         messages: messages,
         max_tokens: this.maxTokens,
         temperature: 0.7,
-        top_p: 1,
-        frequency_penalty: 0,
-        presence_penalty: 0,
+        top_p: 0.95,
+        frequency_penalty: 0.1,
+        presence_penalty: 0.1,
       });
 
       const response = completion.choices[0].message.content;
@@ -204,6 +218,91 @@ Lưu ý:
       pricing: this.pricing[this.model] || null,
       isConfigured: this.isConfigured(),
     };
+  }
+
+  /**
+   * Analyze user message using AI to extract intent and entities
+   * This is the FIRST step - let AI understand the question before database queries
+   */
+  async analyzeWithAI(userMessage) {
+    try {
+      if (!this.initialize()) {
+        console.log("OpenAI not configured, falling back to keyword analysis");
+        return null;
+      }
+
+      const analysisPrompt = `Phân tích câu hỏi của người dùng và trả về JSON với các trường sau:
+
+INTENT (chọn 1):
+- "sister_info": Hỏi về thông tin nữ tu cụ thể (tên, tuổi, ngày sinh, cộng đoàn...)
+- "community_info": Hỏi về cộng đoàn (danh sách, thông tin, thành viên...)
+- "statistics": Hỏi về số lượng, thống kê (bao nhiêu, mấy, tổng số...)
+- "journey_info": Hỏi về hành trình ơn gọi, giai đoạn tu (khấn, nhà tập...)
+- "education_info": Hỏi về học vấn, bằng cấp
+- "health_info": Hỏi về sức khỏe
+- "mission_info": Hỏi về sứ vụ, công tác
+- "help": Hỏi cách sử dụng, hướng dẫn
+- "greeting": Chào hỏi đơn giản
+- "general": Câu hỏi chung khác
+
+ENTITIES (trích xuất nếu có):
+- person_name: Tên người được hỏi (VD: "Nguyễn Thị Mai", "Maria", "sơ Tín")
+- community_name: Tên cộng đoàn (VD: "Sài Gòn", "Thủ Đức")
+- stage: Giai đoạn ơn gọi (inquiry, postulancy, novitiate, temporary_vows, perpetual_vows)
+- age_question: true nếu hỏi về tuổi
+- count_question: true nếu hỏi về số lượng
+- list_question: true nếu hỏi danh sách
+
+Câu hỏi: "${userMessage}"
+
+Trả về CHÍNH XÁC JSON format (không markdown):
+{"intent":"...", "entities":{"person_name":"...", ...}, "keywords":["keyword1","keyword2"]}`;
+
+      const completion = await this.client.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Bạn là AI phân tích câu hỏi. Chỉ trả về JSON, không giải thích.",
+          },
+          {
+            role: "user",
+            content: analysisPrompt,
+          },
+        ],
+        max_tokens: 300,
+        temperature: 0.1, // Low temperature for consistent parsing
+      });
+
+      const responseText = completion.choices[0].message.content.trim();
+      console.log("AI Analysis raw response:", responseText);
+
+      // Parse JSON from response (handle potential markdown wrapper)
+      let jsonStr = responseText;
+      if (responseText.includes("```json")) {
+        jsonStr =
+          responseText.match(/```json\s*([\s\S]*?)\s*```/)?.[1] || responseText;
+      } else if (responseText.includes("```")) {
+        jsonStr =
+          responseText.match(/```\s*([\s\S]*?)\s*```/)?.[1] || responseText;
+      }
+
+      const analysis = JSON.parse(jsonStr);
+      console.log("AI Analysis parsed:", analysis);
+
+      return {
+        success: true,
+        intent: analysis.intent || "general",
+        entities: analysis.entities || {},
+        keywords: analysis.keywords || [],
+        confidence: 0.9, // AI analysis has high confidence
+        source: "ai",
+      };
+    } catch (error) {
+      console.error("AI Analysis error:", error.message);
+      return null; // Return null to fall back to keyword analysis
+    }
   }
 }
 
