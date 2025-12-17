@@ -5,14 +5,14 @@ const dotenv = require("dotenv");
 // Ensure environment variables are loaded when this module is imported
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-// Support both local .env format and Railway's auto-injected variables
 const {
+  MYSQL_URL,
+  DATABASE_URL,
   DB_HOST,
   DB_PORT,
   DB_USER,
   DB_PASSWORD,
   DB_NAME,
-  // Railway MySQL plugin variables
   MYSQLHOST,
   MYSQLPORT,
   MYSQLUSER,
@@ -20,29 +20,44 @@ const {
   MYSQLDATABASE,
 } = process.env;
 
-// Use Railway variables if available, otherwise fall back to standard names
-const host = MYSQLHOST || DB_HOST;
-const port = MYSQLPORT || DB_PORT || 3306;
-const user = MYSQLUSER || DB_USER;
-const password = MYSQLPASSWORD || DB_PASSWORD;
-const database = MYSQLDATABASE || DB_NAME;
+let pool;
 
-if (!host || !user || !database) {
-  throw new Error(
-    "Missing required database environment variables. Need DB_HOST/MYSQLHOST, DB_USER/MYSQLUSER, and DB_NAME/MYSQLDATABASE"
-  );
+// Priority 1: Use connection URL if available (Railway preferred method)
+if (MYSQL_URL || DATABASE_URL) {
+  const connectionUrl = MYSQL_URL || DATABASE_URL;
+  console.log("Using MySQL connection URL");
+  pool = mysql.createPool({
+    uri: connectionUrl,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
+} else {
+  // Priority 2: Use individual connection parameters
+  const host = MYSQLHOST || DB_HOST;
+  const port = MYSQLPORT || DB_PORT || 3306;
+  const user = MYSQLUSER || DB_USER;
+  const password = MYSQLPASSWORD || DB_PASSWORD;
+  const database = MYSQLDATABASE || DB_NAME;
+
+  if (!host || !user || !database) {
+    throw new Error(
+      "Missing required database environment variables. Need either MYSQL_URL/DATABASE_URL or DB_HOST/MYSQLHOST, DB_USER/MYSQLUSER, and DB_NAME/MYSQLDATABASE"
+    );
+  }
+
+  console.log(`Connecting to MySQL at ${host}:${port}/${database}`);
+  pool = mysql.createPool({
+    host,
+    port: Number(port),
+    user,
+    password,
+    database,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  });
 }
-
-const pool = mysql.createPool({
-  host,
-  port: Number(port),
-  user,
-  password,
-  database,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-});
 
 (async () => {
   try {
