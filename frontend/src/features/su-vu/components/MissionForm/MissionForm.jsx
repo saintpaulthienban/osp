@@ -150,7 +150,10 @@ const MissionForm = ({ show, onHide, mission, onSubmit, sisterId }) => {
                 >
                   <option value="">-- Chọn nữ tu --</option>
                   {sisters.map((sister, index) => (
-                    <option key={`sister-${sister.id}-${index}`} value={sister.id}>
+                    <option
+                      key={`sister-${sister.id}-${index}`}
+                      value={sister.id}
+                    >
                       {sister.saint_name ||
                         sister.religious_name ||
                         sister.birth_name}
