@@ -5,6 +5,10 @@ const ChatConversationModel = require("../models/ChatConversationModel");
 const chatbotService = require("../services/chatbotService");
 const openaiService = require("../services/openaiService");
 
+// Debug mode - set to false in production
+const DEBUG = process.env.NODE_ENV !== "production";
+const log = (...args) => DEBUG && log(...args);
+
 // ============== Helper Functions ==============
 
 /**
@@ -43,9 +47,9 @@ class ChatbotController {
    */
   async chat(req, res) {
     try {
-      console.log("=== CHATBOT REQUEST (AI-First Flow) ===");
+      log("=== CHATBOT REQUEST (AI-First Flow) ===");
       const { message, conversation_id } = req.body;
-      console.log("Message:", message);
+      log("Message:", message);
 
       if (!message) {
         return res.status(400).json({
@@ -58,19 +62,19 @@ class ChatbotController {
       const cleanedMessage = message.trim();
 
       // ========== STEP 1: AI Analysis (Primary) ==========
-      console.log("Step 1: AI-powered message analysis...");
+      log("Step 1: AI-powered message analysis...");
       let analysis = await openaiService.analyzeWithAI(cleanedMessage);
 
       // Fallback to keyword-based analysis if AI fails
       if (!analysis) {
-        console.log("AI analysis failed, falling back to keyword matching...");
+        log("AI analysis failed, falling back to keyword matching...");
         analysis = chatbotService.analyzeMessage(cleanedMessage);
         analysis.source = "keyword";
       }
-      console.log("Analysis result:", JSON.stringify(analysis, null, 2));
+      log("Analysis result:", JSON.stringify(analysis, null, 2));
 
       // ========== STEP 2: Extract/Enhance Entities ==========
-      console.log("Step 2: Extracting database entities...");
+      log("Step 2: Extracting database entities...");
       const dbEntities = await chatbotService.extractEntities(cleanedMessage);
 
       // Merge AI entities with DB entities (DB entities have priority for IDs)
@@ -91,7 +95,7 @@ class ChatbotController {
 
       // If AI found a person name but DB didn't find sister_id, try additional search
       if (analysis.entities?.person_name && !entities.sister_id) {
-        console.log(
+        log(
           "Trying to find sister by AI-detected name:",
           analysis.entities.person_name
         );
@@ -105,25 +109,25 @@ class ChatbotController {
         }
       }
 
-      console.log("Combined entities:", JSON.stringify(entities, null, 2));
+      log("Combined entities:", JSON.stringify(entities, null, 2));
 
       // ========== STEP 3: Smart Intent Refinement ==========
       // Refine intent based on both AI analysis and extracted entities
       if (entities.sister_id && analysis.intent === "general") {
         analysis.intent = "sister_info";
-        console.log("Intent refined to sister_info (found sister in DB)");
+        log("Intent refined to sister_info (found sister in DB)");
       }
       if (entities.community_id && analysis.intent === "general") {
         analysis.intent = "community_info";
-        console.log("Intent refined to community_info (found community in DB)");
+        log("Intent refined to community_info (found community in DB)");
       }
       if (entities.count_question && analysis.intent === "general") {
         analysis.intent = "statistics";
-        console.log("Intent refined to statistics (count question)");
+        log("Intent refined to statistics (count question)");
       }
 
       // ========== STEP 4: Database Context Retrieval ==========
-      console.log("Step 3: Retrieving database context...");
+      log("Step 3: Retrieving database context...");
       let context = await chatbotService.retrieveContext(analysis, entities);
 
       // If no context found but we have entities, try broader search
@@ -132,17 +136,17 @@ class ChatbotController {
         analysis.intent !== "greeting" &&
         analysis.intent !== "help"
       ) {
-        console.log("Limited context, trying comprehensive search...");
+        log("Limited context, trying comprehensive search...");
         context = await chatbotService.getComprehensiveContext(
           cleanedMessage,
           entities
         );
       }
 
-      console.log("Context retrieved, length:", context.text?.length || 0);
+      log("Context retrieved, length:", context.text?.length || 0);
 
       // ========== STEP 5: Conversation History ==========
-      console.log("Step 4: Getting conversation history...");
+      log("Step 4: Getting conversation history...");
       let conversationHistory = [];
       if (conversation_id) {
         try {
@@ -160,16 +164,16 @@ class ChatbotController {
       }
 
       // ========== STEP 6: Generate AI Response ==========
-      console.log("Step 5: Generating AI response with context...");
+      log("Step 5: Generating AI response with context...");
       const aiResponse = await openaiService.chat(
         cleanedMessage,
         context,
         conversationHistory
       );
-      console.log("AI Response success:", aiResponse.success);
+      log("AI Response success:", aiResponse.success);
 
       if (!aiResponse.success) {
-        console.log("AI Error:", aiResponse.error);
+        log("AI Error:", aiResponse.error);
         // If AI fails but we have context, return context directly
         if (context.text && context.text.length > 50) {
           return res.json({

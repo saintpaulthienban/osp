@@ -73,8 +73,6 @@ const MissionListPage = () => {
         params.status = table.filters.status;
       }
 
-      console.log("Fetching missions with params:", params);
-
       let response;
       if (sisterId) {
         // Fetch missions for specific sister
