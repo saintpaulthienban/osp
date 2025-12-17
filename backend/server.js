@@ -2,9 +2,6 @@ const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
 
-// QUAN TRỌNG: Phải có process.env.PORT đứng trước
-const PORT = process.env.PORT || 8080;
-
 // Load environment variables from .env file (for local development)
 dotenv.config({ path: path.resolve(__dirname, ".env") });
 
@@ -57,6 +54,9 @@ const startServer = async () => {
     const connection = await db.getConnection();
     connection.release();
     console.log("Database connection verified successfully.");
+
+    // Get PORT right before starting server to ensure env vars are ready
+    const PORT = process.env.PORT || 8080;
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(
