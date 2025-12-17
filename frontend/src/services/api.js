@@ -5,8 +5,8 @@ import { toast } from "react-toastify";
 
 // Create axios instance
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
-  timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
+  baseURL: "https://osp-backend-production.up.railway.app/api", // Hardcoded for Railway testing
+  timeout: 30000,
   headers: {
     "Content-Type": "application/json",
   },
