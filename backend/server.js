@@ -39,6 +39,15 @@ app.use(
 app.use(express.static(path.join(__dirname, "frontend")));
 
 // Attach all API routes
+// Basic health checks for platform probes
+app.get("/", (req, res) => {
+  res.send("OK");
+});
+
+app.get("/healthz", (req, res) => {
+  res.json({ status: "ok", env: process.env.NODE_ENV || "development" });
+});
+
 registerRoutes(app);
 
 // Fallback handlers for unmatched routes and errors
