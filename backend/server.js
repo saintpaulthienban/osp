@@ -2,15 +2,20 @@ const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
 
-// Load environment variables as early as possible
+// Save Railway's PORT before loading .env (Railway injects this)
+const RAILWAY_PORT = process.env.PORT;
+
+// Load environment variables from .env file (for local development)
 dotenv.config({ path: path.resolve(__dirname, ".env") });
+
+// Use Railway PORT if available, otherwise use .env PORT or default
+const PORT = RAILWAY_PORT || process.env.PORT || 3000;
 
 const registerRoutes = require("./src/routes");
 const { notFound, errorHandler } = require("./src/middlewares/errorHandler");
 const { applySecurityMiddlewares } = require("./src/middlewares/security");
 const db = require("./src/config/database");
 
-const PORT = process.env.PORT || 3000;
 const app = express();
 
 // Security middlewares (helmet, CORS, sanitizers, rate limiters)
