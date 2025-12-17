@@ -5,18 +5,40 @@ const dotenv = require("dotenv");
 // Ensure environment variables are loaded when this module is imported
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+// Support both local .env format and Railway's auto-injected variables
+const {
+  DB_HOST,
+  DB_PORT,
+  DB_USER,
+  DB_PASSWORD,
+  DB_NAME,
+  // Railway MySQL plugin variables
+  MYSQLHOST,
+  MYSQLPORT,
+  MYSQLUSER,
+  MYSQLPASSWORD,
+  MYSQLDATABASE,
+} = process.env;
 
-if (!DB_HOST || !DB_USER || !DB_NAME) {
-  throw new Error("Missing required database environment variables.");
+// Use Railway variables if available, otherwise fall back to standard names
+const host = MYSQLHOST || DB_HOST;
+const port = MYSQLPORT || DB_PORT || 3306;
+const user = MYSQLUSER || DB_USER;
+const password = MYSQLPASSWORD || DB_PASSWORD;
+const database = MYSQLDATABASE || DB_NAME;
+
+if (!host || !user || !database) {
+  throw new Error(
+    "Missing required database environment variables. Need DB_HOST/MYSQLHOST, DB_USER/MYSQLUSER, and DB_NAME/MYSQLDATABASE"
+  );
 }
 
 const pool = mysql.createPool({
-  host: DB_HOST,
-  port: DB_PORT ? Number(DB_PORT) : 3306,
-  user: DB_USER,
-  password: DB_PASSWORD,
-  database: DB_NAME,
+  host,
+  port: Number(port),
+  user,
+  password,
+  database,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
