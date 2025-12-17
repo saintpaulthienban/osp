@@ -47,7 +47,7 @@ const startServer = async () => {
     connection.release();
     console.log("Database connection verified successfully.");
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(
         `HR Records Management API listening on port ${PORT} (env: ${
           process.env.NODE_ENV || "development"
