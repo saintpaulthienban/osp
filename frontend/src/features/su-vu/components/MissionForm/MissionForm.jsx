@@ -162,7 +162,7 @@ const MissionForm = ({ show, onHide, mission, onSubmit, sisterId }) => {
             )}
 
             <Col md={6}>
-              <Select
+              <Input
                 label="Lĩnh vực sứ vụ"
                 name="field"
                 value={values.field}
@@ -170,16 +170,9 @@ const MissionForm = ({ show, onHide, mission, onSubmit, sisterId }) => {
                 onBlur={handleBlur}
                 error={errors.field}
                 touched={touched.field}
+                placeholder="VD: Giáo dục, Mục vụ, Y tế..."
                 required
-              >
-                <option value="">-- Chọn lĩnh vực --</option>
-                <option value="education">Giáo dục</option>
-                <option value="pastoral">Mục vụ</option>
-                <option value="publishing">Xuất bản</option>
-                <option value="media">Truyền thông</option>
-                <option value="healthcare">Y tế</option>
-                <option value="social">Xã hội</option>
-              </Select>
+              />
             </Col>
 
             <Col md={6}>

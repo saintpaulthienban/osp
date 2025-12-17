@@ -192,15 +192,7 @@ const MissionListPage = () => {
   };
 
   const fieldLabel = (field) => {
-    const map = {
-      education: "Giáo dục",
-      pastoral: "Mục vụ",
-      publishing: "Xuất bản",
-      media: "Truyền thông",
-      healthcare: "Y tế",
-      social: "Xã hội",
-    };
-    return map[field] || field || "-";
+    return field || "-";
   };
 
   const sortedMissions = useMemo(() => {
@@ -350,7 +342,8 @@ const MissionListPage = () => {
             <Col md={3}>
               <Form.Group>
                 <Form.Label>Lĩnh vực</Form.Label>
-                <Form.Select
+                <Form.Control
+                  type="text"
                   value={table.filters?.field || ""}
                   onChange={(e) =>
                     table.updateFilters({
@@ -358,16 +351,9 @@ const MissionListPage = () => {
                       field: e.target.value,
                     })
                   }
+                  placeholder="Tìm theo lĩnh vực..."
                   size="lg"
-                >
-                  <option value="">Tất cả</option>
-                  <option value="education">Giáo dục</option>
-                  <option value="pastoral">Mục vụ</option>
-                  <option value="publishing">Xuất bản</option>
-                  <option value="media">Truyền thông</option>
-                  <option value="healthcare">Y tế</option>
-                  <option value="social">Xã hội</option>
-                </Form.Select>
+                />
               </Form.Group>
             </Col>
             <Col md={3}>
