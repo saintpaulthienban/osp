@@ -7,7 +7,7 @@ const openaiService = require("../services/openaiService");
 
 // Debug mode - set to false in production
 const DEBUG = process.env.NODE_ENV !== "production";
-const log = (...args) => DEBUG && log(...args);
+const log = (...args) => DEBUG && console.log(...args);
 
 // ============== Helper Functions ==============
 
