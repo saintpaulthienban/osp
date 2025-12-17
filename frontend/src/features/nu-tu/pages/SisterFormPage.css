@@ -1,0 +1,179 @@
+/* Styles for SisterFormPage sidebar cards */
+:root {
+  --health-primary: #042954;
+  --health-primary-light: #051f3e;
+  --health-accent: #ffa901;
+  --health-white: #ffffff;
+  --health-bg: #f0f1f3;
+}
+
+.health-info-card {
+  background: var(--health-white);
+  border-radius: 20px;
+  box-shadow: 0 5px 20px rgba(4, 41, 84, 0.08);
+  border: none;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  margin-bottom: 1.5rem;
+}
+
+.health-info-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 30px rgba(4, 41, 84, 0.12);
+}
+
+.health-info-card .card-header {
+  background: linear-gradient(
+    135deg,
+    var(--health-primary) 0%,
+    var(--health-primary-light) 100%
+  );
+  color: var(--health-white);
+  padding: 1rem 1.5rem;
+  border: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.health-info-card .card-header i,
+.health-info-card .card-header svg {
+  color: var(--health-accent);
+  margin-right: 0.75rem;
+  font-size: 1.1rem;
+}
+
+.health-info-card .card-header.documents-header,
+.health-info-card .card-header.system-header {
+  background: linear-gradient(
+    135deg,
+    var(--health-primary) 0%,
+    var(--health-primary-light) 100%
+  );
+}
+
+.health-info-card .card-header.documents-header i,
+.health-info-card .card-header.system-header i,
+.health-info-card .card-header.documents-header svg,
+.health-info-card .card-header.system-header svg {
+  color: var(--health-accent);
+}
+
+.health-info-card .card-body {
+  padding: 1.5rem;
+}
+
+.sidebar-nav-card {
+  position: sticky;
+  top: 1rem;
+}
+
+/* Horizontal Navigation Tabs */
+.nav-horizontal-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  --bs-nav-pills-link-active-bg: var(--health-primary);
+}
+
+.nav-horizontal-tabs .nav-link {
+  color: #495057;
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  background: #f8f9fa;
+  border: 2px solid transparent;
+}
+
+.nav-horizontal-tabs .nav-link i {
+  color: var(--health-accent);
+  font-size: 1rem;
+}
+
+.nav-horizontal-tabs .nav-link:hover {
+  background-color: #e9ecef;
+  border-color: var(--health-accent);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nav-horizontal-tabs .nav-link.active {
+  background: linear-gradient(
+    135deg,
+    var(--health-primary) 0%,
+    var(--health-primary-light) 100%
+  );
+  color: white;
+  border-color: var(--health-primary);
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(4, 41, 84, 0.3);
+}
+
+.nav-horizontal-tabs .nav-link.active i {
+  color: var(--health-accent);
+}
+
+.nav-sidebar {
+  padding: 1rem;
+  gap: 0.35rem;
+}
+
+.nav-sidebar .nav-link {
+  border-radius: 12px;
+  color: #1f2a44;
+  font-weight: 600;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
+}
+
+.nav-sidebar .nav-link:hover {
+  background: #e8eef5;
+  color: var(--health-primary);
+}
+
+.nav-sidebar .nav-link.active {
+  background: linear-gradient(
+    135deg,
+    var(--health-primary) 0%,
+    var(--health-primary-light) 100%
+  );
+  color: var(--health-white);
+  box-shadow: 0 6px 18px rgba(4, 41, 84, 0.18);
+}
+
+.nav-sidebar .nav-link.active i,
+.nav-sidebar .nav-link.active svg {
+  color: var(--health-accent);
+}
+
+/* Responsive */
+@media (max-width: 991.98px) {
+  .nav-horizontal-tabs .nav-link {
+    padding: 0.625rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .nav-horizontal-tabs {
+    gap: 0.35rem;
+  }
+
+  .nav-horizontal-tabs .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .nav-horizontal-tabs .nav-link i {
+    display: none;
+  }
+}

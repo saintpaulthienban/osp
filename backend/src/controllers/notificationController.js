@@ -1,0 +1,245 @@
+// src/controllers/notificationController.js
+const db = require("../config/database");
+
+/**
+ * Get notifications for current user
+ */
+const getNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { limit = 20, unreadOnly = false } = req.query;
+
+    let query = `
+      SELECT * FROM notifications 
+      WHERE user_id = ?
+    `;
+    const params = [userId];
+
+    if (unreadOnly === "true") {
+      query += " AND is_read = 0";
+    }
+
+    query += " ORDER BY created_at DESC LIMIT ?";
+    params.push(parseInt(limit));
+
+    const [rows] = await db.execute(query, params);
+
+    // Get unread count
+    const [countResult] = await db.execute(
+      "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      data: rows,
+      unreadCount: countResult[0].count,
+    });
+  } catch (error) {
+    console.error("getNotifications error:", error);
+    res.status(500).json({ success: false, message: "Lỗi khi tải thông báo" });
+  }
+};
+
+/**
+ * Get unread count
+ */
+const getUnreadCount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const [rows] = await db.execute(
+      "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      count: rows[0].count,
+    });
+  } catch (error) {
+    console.error("getUnreadCount error:", error);
+    res.status(500).json({ success: false, message: "Lỗi khi đếm thông báo" });
+  }
+};
+
+/**
+ * Mark notification as read
+ */
+const markAsRead = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const [result] = await db.execute(
+      "UPDATE notifications SET is_read = 1, read_at = NOW() WHERE id = ? AND user_id = ?",
+      [id, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông báo",
+      });
+    }
+
+    res.json({ success: true, message: "Đã đánh dấu đã đọc" });
+  } catch (error) {
+    console.error("markAsRead error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Lỗi khi cập nhật thông báo" });
+  }
+};
+
+/**
+ * Mark all notifications as read
+ */
+const markAllAsRead = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await db.execute(
+      "UPDATE notifications SET is_read = 1, read_at = NOW() WHERE user_id = ? AND is_read = 0",
+      [userId]
+    );
+
+    res.json({ success: true, message: "Đã đánh dấu tất cả đã đọc" });
+  } catch (error) {
+    console.error("markAllAsRead error:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Lỗi khi cập nhật thông báo" });
+  }
+};
+
+/**
+ * Delete a notification
+ */
+const deleteNotification = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const [result] = await db.execute(
+      "DELETE FROM notifications WHERE id = ? AND user_id = ?",
+      [id, userId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy thông báo",
+      });
+    }
+
+    res.json({ success: true, message: "Đã xóa thông báo" });
+  } catch (error) {
+    console.error("deleteNotification error:", error);
+    res.status(500).json({ success: false, message: "Lỗi khi xóa thông báo" });
+  }
+};
+
+/**
+ * Delete all notifications
+ */
+const deleteAllNotifications = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    await db.execute("DELETE FROM notifications WHERE user_id = ?", [userId]);
+
+    res.json({ success: true, message: "Đã xóa tất cả thông báo" });
+  } catch (error) {
+    console.error("deleteAllNotifications error:", error);
+    res.status(500).json({ success: false, message: "Lỗi khi xóa thông báo" });
+  }
+};
+
+/**
+ * Create a notification (internal use or admin)
+ */
+const createNotification = async (req, res) => {
+  try {
+    const { user_id, type = "info", title, message, link } = req.body;
+
+    if (!user_id || !title) {
+      return res.status(400).json({
+        success: false,
+        message: "user_id và title là bắt buộc",
+      });
+    }
+
+    const [result] = await db.execute(
+      `INSERT INTO notifications (user_id, type, title, message, link)
+       VALUES (?, ?, ?, ?, ?)`,
+      [user_id, type, title, message || null, link || null]
+    );
+
+    res.json({
+      success: true,
+      data: { id: result.insertId },
+      message: "Đã tạo thông báo",
+    });
+  } catch (error) {
+    console.error("createNotification error:", error);
+    res.status(500).json({ success: false, message: "Lỗi khi tạo thông báo" });
+  }
+};
+
+/**
+ * Create notification for multiple users (broadcast)
+ */
+const broadcastNotification = async (req, res) => {
+  try {
+    const { user_ids, type = "info", title, message, link } = req.body;
+
+    if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "user_ids phải là mảng không rỗng",
+      });
+    }
+
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "title là bắt buộc",
+      });
+    }
+
+    const values = user_ids.map((uid) => [
+      uid,
+      type,
+      title,
+      message || null,
+      link || null,
+    ]);
+    const placeholders = values.map(() => "(?, ?, ?, ?, ?)").join(", ");
+    const flatValues = values.flat();
+
+    await db.execute(
+      `INSERT INTO notifications (user_id, type, title, message, link) VALUES ${placeholders}`,
+      flatValues
+    );
+
+    res.json({
+      success: true,
+      message: `Đã gửi thông báo đến ${user_ids.length} người dùng`,
+    });
+  } catch (error) {
+    console.error("broadcastNotification error:", error);
+    res.status(500).json({ success: false, message: "Lỗi khi gửi thông báo" });
+  }
+};
+
+module.exports = {
+  getNotifications,
+  getUnreadCount,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification,
+  deleteAllNotifications,
+  createNotification,
+  broadcastNotification,
+};

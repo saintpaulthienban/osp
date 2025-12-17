@@ -1,0 +1,39 @@
+/* frontend/src/features/users/components/PermissionSelector.css */
+
+.permission-selector {
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+}
+
+.permission-selector .accordion-item {
+  border: none;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.permission-selector .accordion-item:last-child {
+  border-bottom: none;
+}
+
+.permission-selector .accordion-button {
+  background-color: #f8f9fa;
+  padding: 1rem 1.5rem;
+}
+
+.permission-selector .accordion-button:not(.collapsed) {
+  background-color: #e7f3ff;
+  color: #0d6efd;
+}
+
+.permission-selector .accordion-button:focus {
+  box-shadow: none;
+  border-color: transparent;
+}
+
+.permission-selector .accordion-body {
+  padding: 1.5rem;
+}
+
+.permission-selector .form-check-label {
+  cursor: pointer;
+  user-select: none;
+}

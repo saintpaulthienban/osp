@@ -1,0 +1,280 @@
+// backend/src/controllers/dashboardController.js
+
+const SisterModel = require("../models/SisterModel");
+const CommunityModel = require("../models/CommunityModel");
+const PostModel = require("../models/PostModel");
+const AuditLogModel = require("../models/AuditLogModel");
+
+/**
+ * Get dashboard overview statistics
+ */
+const getDashboardStats = async (req, res) => {
+  try {
+    // Total sisters
+    const [totalSistersResult] = await SisterModel.executeQuery(
+      "SELECT COUNT(*) as total FROM sisters"
+    );
+    const totalSisters = totalSistersResult?.total || 0;
+
+    // Active sisters
+    const [activeSistersResult] = await SisterModel.executeQuery(
+      "SELECT COUNT(*) as total FROM sisters WHERE status = 'active'"
+    );
+    const activeSisters = activeSistersResult?.total || 0;
+
+    // Total communities
+    const [totalCommunitiesResult] = await CommunityModel.executeQuery(
+      "SELECT COUNT(*) as total FROM communities"
+    );
+    const totalCommunities = totalCommunitiesResult?.total || 0;
+
+    // Average age of active sisters
+    const [avgAgeResult] = await SisterModel.executeQuery(
+      `SELECT ROUND(AVG(TIMESTAMPDIFF(YEAR, date_of_birth, CURDATE()))) as avg_age 
+       FROM sisters 
+       WHERE status = 'active' AND date_of_birth IS NOT NULL`
+    );
+    const averageAge = avgAgeResult?.avg_age || 0;
+
+    // New sisters this month
+    const [newSistersResult] = await SisterModel.executeQuery(
+      `SELECT COUNT(*) as total FROM sisters 
+       WHERE MONTH(created_at) = MONTH(CURDATE()) 
+       AND YEAR(created_at) = YEAR(CURDATE())`
+    );
+    const newSistersThisMonth = newSistersResult?.total || 0;
+
+    // Sisters by status
+    const sistersByStatus = await SisterModel.executeQuery(
+      `SELECT status, COUNT(*) as count 
+       FROM sisters 
+       GROUP BY status`
+    );
+
+    // Sisters by vocation stage (latest stage only)
+    const sistersByStage = await SisterModel.executeQuery(
+      `SELECT v.stage, COUNT(DISTINCT v.sister_id) as count
+       FROM vocation_journey v
+       INNER JOIN (
+         SELECT sister_id, MAX(start_date) AS max_start
+         FROM vocation_journey
+         GROUP BY sister_id
+       ) latest ON latest.sister_id = v.sister_id AND latest.max_start = v.start_date
+       INNER JOIN sisters s ON s.id = v.sister_id
+       GROUP BY v.stage
+       ORDER BY count DESC`
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalSisters,
+        activeSisters,
+        totalCommunities,
+        averageAge,
+        newSistersThisMonth,
+        sistersByStatus,
+        sistersByStage,
+      },
+    });
+  } catch (error) {
+    console.error("getDashboardStats error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi tải thống kê dashboard",
+    });
+  }
+};
+
+/**
+ * Get recent activities from audit log
+ */
+const getRecentActivities = async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    const activities = await AuditLogModel.executeQuery(
+      `SELECT 
+        al.id,
+        al.action,
+        al.table_name,
+        al.record_id,
+        al.created_at,
+        u.full_name as user_name,
+        u.email as user_email
+       FROM audit_logs al
+       LEFT JOIN users u ON u.id = al.user_id
+       ORDER BY al.created_at DESC
+       LIMIT ?`,
+      [parseInt(limit)]
+    );
+
+    // Format activities
+    const formattedActivities = activities.map((activity) => {
+      let type = "info";
+      let icon = "fas fa-info-circle";
+      let message = activity.action;
+
+      // Determine type and icon based on action
+      if (
+        activity.action.toLowerCase().includes("create") ||
+        activity.action.toLowerCase().includes("thêm")
+      ) {
+        type = "success";
+        icon = "fas fa-plus-circle";
+      } else if (
+        activity.action.toLowerCase().includes("update") ||
+        activity.action.toLowerCase().includes("cập nhật")
+      ) {
+        type = "primary";
+        icon = "fas fa-edit";
+      } else if (
+        activity.action.toLowerCase().includes("delete") ||
+        activity.action.toLowerCase().includes("xóa")
+      ) {
+        type = "danger";
+        icon = "fas fa-trash";
+      } else if (
+        activity.action.toLowerCase().includes("login") ||
+        activity.action.toLowerCase().includes("đăng nhập")
+      ) {
+        type = "info";
+        icon = "fas fa-sign-in-alt";
+      }
+
+      // Generate readable message
+      const tableNames = {
+        sisters: "nữ tu",
+        communities: "cộng đoàn",
+        users: "người dùng",
+        posts: "bài đăng",
+        vocation_journey: "hành trình ơn gọi",
+        health_records: "hồ sơ sức khỏe",
+        missions: "sứ vụ",
+        education: "học vấn",
+        evaluations: "đánh giá",
+      };
+
+      const tableName = tableNames[activity.table_name] || activity.table_name;
+
+      return {
+        id: activity.id,
+        type,
+        icon,
+        message: `${activity.action} (${tableName})`,
+        user: activity.user_name || "Hệ thống",
+        timestamp: activity.created_at,
+        tableType: activity.table_name,
+        recordId: activity.record_id,
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: formattedActivities,
+    });
+  } catch (error) {
+    console.error("getRecentActivities error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi tải hoạt động gần đây",
+    });
+  }
+};
+
+/**
+ * Get recent posts for dashboard
+ */
+const getRecentPosts = async (req, res) => {
+  try {
+    const { limit = 5 } = req.query;
+
+    const posts = await PostModel.executeQuery(
+      `SELECT 
+        p.id,
+        p.title,
+        p.category,
+        p.summary,
+        p.is_pinned,
+        p.is_important,
+        p.view_count,
+        p.created_at,
+        u.full_name as author_name
+       FROM posts p
+       LEFT JOIN users u ON u.id = p.author_id
+       WHERE p.status = 'published' AND p.deleted_at IS NULL
+       ORDER BY p.is_pinned DESC, p.created_at DESC
+       LIMIT ?`,
+      [parseInt(limit)]
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: posts,
+    });
+  } catch (error) {
+    console.error("getRecentPosts error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi tải bài đăng gần đây",
+    });
+  }
+};
+
+/**
+ * Get quick stats for dashboard cards
+ */
+const getQuickStats = async (req, res) => {
+  try {
+    // Pending evaluations
+    const [pendingEvaluations] = await SisterModel.executeQuery(
+      `SELECT COUNT(*) as total FROM evaluations WHERE status = 'pending'`
+    );
+
+    // Upcoming events (posts with su-kien category created in last 7 days)
+    const [upcomingEvents] = await PostModel.executeQuery(
+      `SELECT COUNT(*) as total FROM posts 
+       WHERE category = 'su-kien' 
+       AND status = 'published' 
+       AND deleted_at IS NULL
+       AND created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`
+    );
+
+    // Important announcements
+    const [importantAnnouncements] = await PostModel.executeQuery(
+      `SELECT COUNT(*) as total FROM posts 
+       WHERE is_important = 1 
+       AND status = 'published' 
+       AND deleted_at IS NULL`
+    );
+
+    // Active missions
+    const [activeMissions] = await SisterModel.executeQuery(
+      `SELECT COUNT(*) as total FROM missions 
+       WHERE (end_date IS NULL OR end_date >= CURDATE())`
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        pendingEvaluations: pendingEvaluations?.total || 0,
+        upcomingEvents: upcomingEvents?.total || 0,
+        importantAnnouncements: importantAnnouncements?.total || 0,
+        activeMissions: activeMissions?.total || 0,
+      },
+    });
+  } catch (error) {
+    console.error("getQuickStats error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi tải thống kê nhanh",
+    });
+  }
+};
+
+module.exports = {
+  getDashboardStats,
+  getRecentActivities,
+  getRecentPosts,
+  getQuickStats,
+};
