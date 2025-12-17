@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { journeyService, sisterService } from "@services";
-import { formatDate } from "@utils";
+import { formatDate, resolveMediaUrl } from "@utils";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import SearchableSelect from "@components/forms/SearchableSelect";
 import "./TimelinePage.css";
@@ -173,7 +173,7 @@ const TimelinePage = () => {
   const getPhotoUrl = (sisterData) => {
     if (sisterData?.photo_url) {
       if (sisterData.photo_url.startsWith("/")) {
-        return `http://localhost:5000${sisterData.photo_url}`;
+        return resolveMediaUrl(sisterData.photo_url);
       }
       return sisterData.photo_url;
     }

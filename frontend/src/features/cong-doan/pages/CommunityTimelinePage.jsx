@@ -5,7 +5,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Button, Modal } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { communityService } from "@services";
-import { formatDate } from "@utils";
+import { formatDate, resolveMediaUrl } from "@utils";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import SearchableSelect from "@components/forms/SearchableSelect";
 import "@components/common/Timeline/Timeline.css";
@@ -535,7 +535,7 @@ const CommunityTimelinePage = () => {
                       </label>
                       <p className="mb-0">
                         <a
-                          href={`http://localhost:5000${selectedAssignment.decision_file_url}`}
+                          href={resolveMediaUrl(selectedAssignment.decision_file_url)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-outline-primary btn-sm"

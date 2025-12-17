@@ -3,7 +3,7 @@
 const DEFAULT_API_BASE = "http://localhost:5000";
 
 const getFileBase = () => {
-  const apiUrl = import.meta.env.REACT_APP_API_URL || DEFAULT_API_BASE;
+  const apiUrl = import.meta.env.VITE_API_URL || DEFAULT_API_BASE;
   // If apiUrl ends with /api strip it so we point to the root server origin
   return apiUrl.replace(/\/?api\/?$/, "");
 };

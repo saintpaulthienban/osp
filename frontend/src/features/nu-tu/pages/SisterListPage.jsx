@@ -17,6 +17,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import sisterService from "@services/sisterService";
+import { resolveMediaUrl } from "@utils/media";
 import Breadcrumb from "@components/common/Breadcrumb/Breadcrumb";
 import StatsCards from "@components/common/StatsCards";
 
@@ -151,7 +152,7 @@ const SisterListPage = () => {
     if (sister.photo_url) {
       // If it's a relative URL, prepend the API base
       if (sister.photo_url.startsWith("/")) {
-        return `http://localhost:5000${sister.photo_url}`;
+        return resolveMediaUrl(sister.photo_url);
       }
       return sister.photo_url;
     }

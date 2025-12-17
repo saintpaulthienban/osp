@@ -13,7 +13,7 @@ import {
 } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { evaluationService } from "@services";
-import { formatDate } from "@utils";
+import { formatDate, resolveMediaUrl } from "@utils";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
 import "./EvaluationDetailPage.css";
@@ -345,7 +345,7 @@ const EvaluationDetailPage = () => {
                           {docs.map((doc, index) => (
                             <a
                               key={doc.id || index}
-                              href={`http://localhost:5000${doc.url}`}
+                              href={resolveMediaUrl(doc.url)}
                               target="_blank"
                               rel="noopener noreferrer"
                             >
