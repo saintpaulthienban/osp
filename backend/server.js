@@ -2,14 +2,11 @@ const path = require("path");
 const express = require("express");
 const dotenv = require("dotenv");
 
-// Save Railway's PORT before loading .env (Railway injects this)
-const RAILWAY_PORT = process.env.PORT;
+// QUAN TRỌNG: Phải có process.env.PORT đứng trước
+const PORT = process.env.PORT || 8080;
 
 // Load environment variables from .env file (for local development)
 dotenv.config({ path: path.resolve(__dirname, ".env") });
-
-// Use Railway PORT if available, otherwise use .env PORT or default
-const PORT = RAILWAY_PORT || process.env.PORT || 3000;
 
 const registerRoutes = require("./src/routes");
 const { notFound, errorHandler } = require("./src/middlewares/errorHandler");
