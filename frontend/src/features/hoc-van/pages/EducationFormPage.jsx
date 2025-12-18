@@ -129,7 +129,6 @@ const EducationFormPage = () => {
   const [levels, setLevels] = useState(defaultLevels);
   const [showAddLevelModal, setShowAddLevelModal] = useState(false);
   const [newLevelName, setNewLevelName] = useState("");
-  const [newLevelCode, setNewLevelCode] = useState("");
   const [newLevelColor, setNewLevelColor] = useState("#0d6efd");
   const [addingLevel, setAddingLevel] = useState(false);
 
@@ -160,15 +159,14 @@ const EducationFormPage = () => {
   };
 
   const handleAddLevel = async () => {
-    if (!newLevelName.trim() || !newLevelCode.trim()) {
-      toast.error("Vui lòng nhập mã và tên trình độ");
+    if (!newLevelName.trim()) {
+      toast.error("Vui lòng nhập tên trình độ");
       return;
     }
 
     try {
       setAddingLevel(true);
       const response = await lookupService.createEducationLevel({
-        code: newLevelCode.trim().toLowerCase().replace(/\s+/g, "_"),
         name: newLevelName.trim(),
         display_order: levels.length + 1,
         color: newLevelColor,
@@ -177,7 +175,6 @@ const EducationFormPage = () => {
       if (response && response.data) {
         await fetchEducationLevels();
         setNewLevelName("");
-        setNewLevelCode("");
         setNewLevelColor("#0d6efd");
         setShowAddLevelModal(false);
         toast.success("Đã thêm trình độ mới thành công!");
@@ -640,21 +637,6 @@ const EducationFormPage = () => {
               <div className="modal-body">
                 <Form.Group className="mb-3">
                   <Form.Label>
-                    Mã trình độ <span className="text-danger">*</span>
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Ví dụ: postgraduate"
-                    value={newLevelCode}
-                    onChange={(e) => setNewLevelCode(e.target.value)}
-                  />
-                  <Form.Text className="text-muted">
-                    Mã sẽ được tự động chuyển sang chữ thường và thay khoảng
-                    trắng bằng dấu gạch dưới
-                  </Form.Text>
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>
                     Tên trình độ <span className="text-danger">*</span>
                   </Form.Label>
                   <Form.Control
@@ -722,9 +704,7 @@ const EducationFormPage = () => {
                 <Button
                   variant="primary"
                   onClick={handleAddLevel}
-                  disabled={
-                    addingLevel || !newLevelName.trim() || !newLevelCode.trim()
-                  }
+                  disabled={addingLevel || !newLevelName.trim()}
                 >
                   {addingLevel ? (
                     <>

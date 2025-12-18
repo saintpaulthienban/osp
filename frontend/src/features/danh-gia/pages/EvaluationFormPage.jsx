@@ -281,6 +281,35 @@ const EvaluationFormPage = () => {
                 <Row className="g-3">
                   <Col md={6}>
                     <SearchableSelect
+                      label="Người đánh giá"
+                      name="evaluator"
+                      value={formik.values.evaluator}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      required
+                      placeholder="Nhập tên để tìm..."
+                      maxDisplayItems={5}
+                      isInvalid={
+                        formik.touched.evaluator && formik.errors.evaluator
+                      }
+                      options={(sisters || []).map((sister) => ({
+                        value: sister.id,
+                        label:
+                          `${sister.saint_name ? `${sister.saint_name} ` : ""}${
+                            sister.birth_name || ""
+                          }${sister.code ? ` (${sister.code})` : ""}`.trim() ||
+                          `Nữ tu #${sister.id}`,
+                      }))}
+                    />
+                    {formik.touched.evaluator && formik.errors.evaluator && (
+                      <div className="invalid-feedback d-block">
+                        {formik.errors.evaluator}
+                      </div>
+                    )}
+                  </Col>
+
+                  <Col md={6}>
+                    <SearchableSelect
                       label="Nữ Tu"
                       name="sister_id"
                       value={formik.values.sister_id}
@@ -377,35 +406,6 @@ const EvaluationFormPage = () => {
                           {formik.errors.evaluation_date}
                         </div>
                       )}
-                  </Col>
-
-                  <Col md={6}>
-                    <SearchableSelect
-                      label="Người đánh giá"
-                      name="evaluator"
-                      value={formik.values.evaluator}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      required
-                      placeholder="Nhập tên để tìm..."
-                      maxDisplayItems={5}
-                      isInvalid={
-                        formik.touched.evaluator && formik.errors.evaluator
-                      }
-                      options={(sisters || []).map((sister) => ({
-                        value: sister.id,
-                        label:
-                          `${sister.saint_name ? `${sister.saint_name} ` : ""}${
-                            sister.birth_name || ""
-                          }${sister.code ? ` (${sister.code})` : ""}`.trim() ||
-                          `Nữ tu #${sister.id}`,
-                      }))}
-                    />
-                    {formik.touched.evaluator && formik.errors.evaluator && (
-                      <div className="invalid-feedback d-block">
-                        {formik.errors.evaluator}
-                      </div>
-                    )}
                   </Col>
                 </Row>
               </Card.Body>

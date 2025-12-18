@@ -269,19 +269,14 @@ const DepartureFormPage = () => {
                       <Form.Label>
                         Loại đi vắng <span className="text-danger">*</span>
                       </Form.Label>
-                      <Form.Select
+                      <Form.Control
+                        type="text"
                         name="type"
                         value={formData.type}
                         onChange={handleChange}
                         required
-                      >
-                        <option value="">Chọn loại</option>
-                        <option value="temporary">Tạm thời</option>
-                        <option value="medical">Khám chữa bệnh</option>
-                        <option value="study">Học tập</option>
-                        <option value="mission">Sứ vụ</option>
-                        <option value="other">Khác</option>
-                      </Form.Select>
+                        placeholder="Nhập loại đi vắng..."
+                      />
                     </Form.Group>
                   </Col>
 

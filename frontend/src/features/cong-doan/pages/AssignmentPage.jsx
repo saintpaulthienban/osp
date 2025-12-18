@@ -116,7 +116,6 @@ const AssignmentPage = () => {
   const [roles, setRoles] = useState(defaultRoles);
   const [showAddRoleModal, setShowAddRoleModal] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
-  const [newRoleCode, setNewRoleCode] = useState("");
   const [newRoleColor, setNewRoleColor] = useState("#0984e3");
   const [addingRole, setAddingRole] = useState(false);
 
@@ -259,15 +258,14 @@ const AssignmentPage = () => {
   };
 
   const handleAddRole = async () => {
-    if (!newRoleName.trim() || !newRoleCode.trim()) {
-      toast.error("Vui lòng nhập mã và tên chức vụ");
+    if (!newRoleName.trim()) {
+      toast.error("Vui lòng nhập tên chức vụ");
       return;
     }
 
     try {
       setAddingRole(true);
       const response = await lookupService.createCommunityRole({
-        code: newRoleCode.trim().toLowerCase().replace(/\s+/g, "_"),
         name: newRoleName.trim(),
         display_order: roles.length + 1,
         color: newRoleColor,
@@ -276,7 +274,6 @@ const AssignmentPage = () => {
       if (response && response.data) {
         await fetchCommunityRoles();
         setNewRoleName("");
-        setNewRoleCode("");
         setNewRoleColor("#0984e3");
         setShowAddRoleModal(false);
         toast.success("Đã thêm chức vụ mới thành công!");
@@ -1302,21 +1299,6 @@ const AssignmentPage = () => {
               <div className="modal-body">
                 <Form.Group className="mb-3">
                   <Form.Label>
-                    Mã chức vụ <span className="text-danger">*</span>
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Ví dụ: coordinator"
-                    value={newRoleCode}
-                    onChange={(e) => setNewRoleCode(e.target.value)}
-                  />
-                  <Form.Text className="text-muted">
-                    Mã sẽ được tự động chuyển sang chữ thường và thay khoảng
-                    trắng bằng dấu gạch dưới
-                  </Form.Text>
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>
                     Tên chức vụ <span className="text-danger">*</span>
                   </Form.Label>
                   <Form.Control
@@ -1384,9 +1366,7 @@ const AssignmentPage = () => {
                 <Button
                   variant="primary"
                   onClick={handleAddRole}
-                  disabled={
-                    addingRole || !newRoleName.trim() || !newRoleCode.trim()
-                  }
+                  disabled={addingRole || !newRoleName.trim()}
                 >
                   {addingRole ? (
                     <>

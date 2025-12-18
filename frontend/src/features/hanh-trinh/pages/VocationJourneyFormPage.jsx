@@ -43,7 +43,6 @@ const VocationJourneyFormPage = () => {
   const [stages, setStages] = useState([]);
   const [showAddStageModal, setShowAddStageModal] = useState(false);
   const [newStageName, setNewStageName] = useState("");
-  const [newStageCode, setNewStageCode] = useState("");
   const [newStageColor, setNewStageColor] = useState("#17a2b8");
   const [addingStage, setAddingStage] = useState(false);
 
@@ -287,15 +286,14 @@ const VocationJourneyFormPage = () => {
   };
 
   const handleAddStage = async () => {
-    if (!newStageName.trim() || !newStageCode.trim()) {
-      setError("Vui lòng nhập mã và tên giai đoạn");
+    if (!newStageName.trim()) {
+      setError("Vui lòng nhập tên giai đoạn");
       return;
     }
 
     try {
       setAddingStage(true);
       const response = await lookupService.createJourneyStage({
-        code: newStageCode.trim().toLowerCase().replace(/\s+/g, "_"),
         name: newStageName.trim(),
         display_order: stages.length + 1,
         color: newStageColor,
@@ -304,9 +302,9 @@ const VocationJourneyFormPage = () => {
       if (response && response.data) {
         await fetchStages();
         setNewStageName("");
-        setNewStageCode("");
         setNewStageColor("#17a2b8");
         setShowAddStageModal(false);
+        toast.success("Đã thêm giai đoạn mới thành công!");
       }
     } catch (error) {
       console.error("Error adding stage:", error);
@@ -696,21 +694,6 @@ const VocationJourneyFormPage = () => {
               <div className="modal-body">
                 <Form.Group className="mb-3">
                   <Form.Label>
-                    Mã giai đoạn <span className="text-danger">*</span>
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Ví dụ: pre_aspirant"
-                    value={newStageCode}
-                    onChange={(e) => setNewStageCode(e.target.value)}
-                  />
-                  <Form.Text className="text-muted">
-                    Mã sẽ được tự động chuyển sang chữ thường và thay khoảng
-                    trắng bằng dấu gạch dưới
-                  </Form.Text>
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>
                     Tên giai đoạn <span className="text-danger">*</span>
                   </Form.Label>
                   <Form.Control
@@ -778,9 +761,7 @@ const VocationJourneyFormPage = () => {
                 <Button
                   variant="primary"
                   onClick={handleAddStage}
-                  disabled={
-                    addingStage || !newStageName.trim() || !newStageCode.trim()
-                  }
+                  disabled={addingStage || !newStageName.trim()}
                 >
                   {addingStage ? (
                     <>

@@ -34,19 +34,27 @@ const EducationListAllPage = () => {
   const [sortBy, setSortBy] = useState("sister_name");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  // Fetch education levels on mount
+  // Fetch education levels on mount and when window gets focus
   useEffect(() => {
     const fetchLevels = async () => {
       try {
         const response = await lookupService.getEducationLevels();
         if (response && response.data) {
           setLevels(response.data);
+          console.log("Education levels loaded:", response.data.length);
         }
       } catch (error) {
         console.error("Error fetching education levels:", error);
       }
     };
     fetchLevels();
+
+    // Refresh levels when window gets focus
+    const handleFocus = () => {
+      fetchLevels();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
   }, []);
 
   // Debounce search - chờ 500ms sau khi ngừng gõ
@@ -66,6 +74,15 @@ const EducationListAllPage = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearch]);
+
+  // Refresh data khi quay lại trang (window focus)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchEducations();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [currentPage, filter.level, filter.status, debouncedSearch]);
 
   const fetchEducations = async () => {
     try {

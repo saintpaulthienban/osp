@@ -35,20 +35,101 @@ const getAllJourneyStages = async (req, res) => {
 
 const createJourneyStage = async (req, res) => {
   try {
-    const { code, name, description, display_order, color } = req.body;
+    const { name, description, display_order, color } = req.body;
 
-    if (!code || !name) {
-      return res.status(400).json({ message: "Code and name are required" });
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
     }
 
-    // Check if code already exists
-    const existing = await JourneyStageModel.findByCode(code);
-    if (existing) {
-      return res.status(400).json({ message: "Code already exists" });
+    // Auto-generate code from Vietnamese name
+    const vietnameseMap = {
+      à: "a",
+      á: "a",
+      ả: "a",
+      ã: "a",
+      ạ: "a",
+      ă: "a",
+      ằ: "a",
+      ắ: "a",
+      ẳ: "a",
+      ẵ: "a",
+      ặ: "a",
+      â: "a",
+      ầ: "a",
+      ấ: "a",
+      ẩ: "a",
+      ẫ: "a",
+      ậ: "a",
+      đ: "d",
+      è: "e",
+      é: "e",
+      ẻ: "e",
+      ẽ: "e",
+      ẹ: "e",
+      ê: "e",
+      ề: "e",
+      ế: "e",
+      ể: "e",
+      ễ: "e",
+      ệ: "e",
+      ì: "i",
+      í: "i",
+      ỉ: "i",
+      ĩ: "i",
+      ị: "i",
+      ò: "o",
+      ó: "o",
+      ỏ: "o",
+      õ: "o",
+      ọ: "o",
+      ô: "o",
+      ồ: "o",
+      ố: "o",
+      ổ: "o",
+      ỗ: "o",
+      ộ: "o",
+      ơ: "o",
+      ờ: "o",
+      ớ: "o",
+      ở: "o",
+      ỡ: "o",
+      ợ: "o",
+      ù: "u",
+      ú: "u",
+      ủ: "u",
+      ũ: "u",
+      ụ: "u",
+      ư: "u",
+      ừ: "u",
+      ứ: "u",
+      ử: "u",
+      ữ: "u",
+      ự: "u",
+      ỳ: "y",
+      ý: "y",
+      ỷ: "y",
+      ỹ: "y",
+      ỵ: "y",
+    };
+
+    // Convert Vietnamese to ASCII
+    let code = name.toLowerCase();
+    for (const [vietnamese, ascii] of Object.entries(vietnameseMap)) {
+      code = code.replace(new RegExp(vietnamese, "g"), ascii);
+    }
+    // Replace special characters and spaces with underscores
+    code = code.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+    // Check if code already exists and add suffix if needed
+    let finalCode = code;
+    let counter = 1;
+    while (await JourneyStageModel.findByCode(finalCode)) {
+      finalCode = `${code}_${counter}`;
+      counter++;
     }
 
     const stage = await JourneyStageModel.create({
-      code,
+      code: finalCode,
       name,
       description,
       display_order: display_order || 0,
@@ -275,20 +356,101 @@ const getAllCommunityRoles = async (req, res) => {
 
 const createCommunityRole = async (req, res) => {
   try {
-    const { code, name, description, display_order, color } = req.body;
+    const { name, description, display_order, color } = req.body;
 
-    if (!code || !name) {
-      return res.status(400).json({ message: "Code and name are required" });
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
     }
 
-    // Check if code already exists
-    const existing = await CommunityRoleModel.findByCode(code);
-    if (existing) {
-      return res.status(400).json({ message: "Mã chức vụ đã tồn tại" });
+    // Auto-generate code from Vietnamese name
+    const vietnameseMap = {
+      à: "a",
+      á: "a",
+      ả: "a",
+      ã: "a",
+      ạ: "a",
+      ă: "a",
+      ằ: "a",
+      ắ: "a",
+      ẳ: "a",
+      ẵ: "a",
+      ặ: "a",
+      â: "a",
+      ầ: "a",
+      ấ: "a",
+      ẩ: "a",
+      ẫ: "a",
+      ậ: "a",
+      đ: "d",
+      è: "e",
+      é: "e",
+      ẻ: "e",
+      ẽ: "e",
+      ẹ: "e",
+      ê: "e",
+      ề: "e",
+      ế: "e",
+      ể: "e",
+      ễ: "e",
+      ệ: "e",
+      ì: "i",
+      í: "i",
+      ỉ: "i",
+      ĩ: "i",
+      ị: "i",
+      ò: "o",
+      ó: "o",
+      ỏ: "o",
+      õ: "o",
+      ọ: "o",
+      ô: "o",
+      ồ: "o",
+      ố: "o",
+      ổ: "o",
+      ỗ: "o",
+      ộ: "o",
+      ơ: "o",
+      ờ: "o",
+      ớ: "o",
+      ở: "o",
+      ỡ: "o",
+      ợ: "o",
+      ù: "u",
+      ú: "u",
+      ủ: "u",
+      ũ: "u",
+      ụ: "u",
+      ư: "u",
+      ừ: "u",
+      ứ: "u",
+      ử: "u",
+      ữ: "u",
+      ự: "u",
+      ỳ: "y",
+      ý: "y",
+      ỷ: "y",
+      ỹ: "y",
+      ỵ: "y",
+    };
+
+    // Convert Vietnamese to ASCII
+    let code = name.toLowerCase();
+    for (const [vietnamese, ascii] of Object.entries(vietnameseMap)) {
+      code = code.replace(new RegExp(vietnamese, "g"), ascii);
+    }
+    // Replace special characters and spaces with underscores
+    code = code.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+    // Check if code already exists and add suffix if needed
+    let finalCode = code;
+    let counter = 1;
+    while (await CommunityRoleModel.findByCode(finalCode)) {
+      finalCode = `${code}_${counter}`;
+      counter++;
     }
 
     const role = await CommunityRoleModel.create({
-      code,
+      code: finalCode,
       name,
       description,
       display_order: display_order || 0,
@@ -413,20 +575,102 @@ const getAllEducationLevels = async (req, res) => {
 
 const createEducationLevel = async (req, res) => {
   try {
-    const { code, name, description, display_order, color } = req.body;
+    const { name, description, display_order, color } = req.body;
 
-    if (!code || !name) {
-      return res.status(400).json({ message: "Code and name are required" });
+    if (!name) {
+      return res.status(400).json({ message: "Name is required" });
     }
 
-    // Check if code already exists
-    const existing = await EducationLevelModel.findByCode(code);
-    if (existing) {
-      return res.status(400).json({ message: "Mã trình độ đã tồn tại" });
+    // Auto-generate code from name
+    // Convert Vietnamese to ASCII, lowercase, and replace spaces with underscores
+    const vietnameseMap = {
+      à: "a",
+      á: "a",
+      ả: "a",
+      ã: "a",
+      ạ: "a",
+      ă: "a",
+      ằ: "a",
+      ắ: "a",
+      ẳ: "a",
+      ẵ: "a",
+      ặ: "a",
+      â: "a",
+      ầ: "a",
+      ấ: "a",
+      ẩ: "a",
+      ẫ: "a",
+      ậ: "a",
+      đ: "d",
+      è: "e",
+      é: "e",
+      ẻ: "e",
+      ẽ: "e",
+      ẹ: "e",
+      ê: "e",
+      ề: "e",
+      ế: "e",
+      ể: "e",
+      ễ: "e",
+      ệ: "e",
+      ì: "i",
+      í: "i",
+      ỉ: "i",
+      ĩ: "i",
+      ị: "i",
+      ò: "o",
+      ó: "o",
+      ỏ: "o",
+      õ: "o",
+      ọ: "o",
+      ô: "o",
+      ồ: "o",
+      ố: "o",
+      ổ: "o",
+      ỗ: "o",
+      ộ: "o",
+      ơ: "o",
+      ờ: "o",
+      ớ: "o",
+      ở: "o",
+      ỡ: "o",
+      ợ: "o",
+      ù: "u",
+      ú: "u",
+      ủ: "u",
+      ũ: "u",
+      ụ: "u",
+      ư: "u",
+      ừ: "u",
+      ứ: "u",
+      ử: "u",
+      ữ: "u",
+      ự: "u",
+      ỳ: "y",
+      ý: "y",
+      ỷ: "y",
+      ỹ: "y",
+      ỵ: "y",
+    };
+
+    let code = name.toLowerCase();
+    // Replace Vietnamese characters
+    for (const [viet, latin] of Object.entries(vietnameseMap)) {
+      code = code.replace(new RegExp(viet, "g"), latin);
+    }
+    // Replace spaces and special characters with underscore
+    code = code.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+
+    // Check if code already exists, if so add number suffix
+    let finalCode = code;
+    let counter = 1;
+    while (await EducationLevelModel.findByCode(finalCode)) {
+      finalCode = `${code}_${counter}`;
+      counter++;
     }
 
     const level = await EducationLevelModel.create({
-      code,
+      code: finalCode,
       name,
       description,
       display_order: display_order || 0,
