@@ -137,12 +137,8 @@ const VocationJourneyListPage = () => {
       label: "Nữ Tu",
       sortable: true,
       render: (row) => (
-        <div>
-          {row.saint_name && (
-            <div className="text-primary fw-semibold">{row.saint_name}</div>
-          )}
-          <div>{row.birth_name}</div>
-          <small className="text-muted">{row.sister_code}</small>
+        <div className="text-primary fw-semibold">
+          {[row.saint_name, row.birth_name].filter(Boolean).join(" ") || "N/A"}
         </div>
       ),
     },
@@ -182,7 +178,12 @@ const VocationJourneyListPage = () => {
       key: "superior",
       label: "Bề trên",
       sortable: true,
-      render: (row) => row.superior || "-",
+      render: (row) => {
+        if (!row.superior) return "-";
+        // Extract name from format "id_name" if present
+        const parts = row.superior.split("_");
+        return parts.length > 1 ? parts.slice(1).join(" ") : row.superior;
+      },
     },
     {
       key: "duration",

@@ -414,8 +414,16 @@ const EducationListAllPage = () => {
                       <tr key={edu.id}>
                         <td>{(currentPage - 1) * 10 + index + 1}</td>
                         <td>
-                          <Link to={`/nu-tu/${edu.sister_id}`}>
-                            {edu.sister_name || edu.religious_name || "N/A"}
+                          <Link
+                            to={`/nu-tu/${edu.sister_id}`}
+                            className="text-primary fw-semibold"
+                          >
+                            {[
+                              edu.religious_name,
+                              edu.birth_name || edu.sister_name,
+                            ]
+                              .filter(Boolean)
+                              .join(" ") || "N/A"}
                           </Link>
                         </td>
                         <td>{edu.institution || "N/A"}</td>

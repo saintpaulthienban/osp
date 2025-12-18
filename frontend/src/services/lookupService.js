@@ -86,6 +86,43 @@ const lookupService = {
       throw error;
     }
   },
+
+  // Community Roles
+  getCommunityRoles: async () => {
+    try {
+      const response = await api.get("/lookup/community-roles");
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  createCommunityRole: async (data) => {
+    try {
+      const response = await api.post("/lookup/community-roles", data);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateCommunityRole: async (id, data) => {
+    try {
+      const response = await api.put(`/lookup/community-roles/${id}`, data);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteCommunityRole: async (id) => {
+    try {
+      const response = await api.delete(`/lookup/community-roles/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default lookupService;

@@ -18,19 +18,19 @@ router.get(
 router.post(
   "/journey-stages",
   authenticateToken,
-  authorize("admin", "be_tren_tong"),
+  authorize("admin", "superior_general"),
   lookupController.createJourneyStage
 );
 router.put(
   "/journey-stages/:id",
   authenticateToken,
-  authorize("admin", "be_tren_tong"),
+  authorize("admin", "superior_general"),
   lookupController.updateJourneyStage
 );
 router.delete(
   "/journey-stages/:id",
   authenticateToken,
-  authorize("admin", "be_tren_tong"),
+  authorize("admin", "superior_general"),
   lookupController.deleteJourneyStage
 );
 
@@ -66,5 +66,35 @@ router.delete(
 
 // User Roles routes
 router.get("/user-roles", authenticateToken, lookupController.getUserRoles);
+
+// Community Roles routes
+router.get(
+  "/community-roles",
+  authenticateToken,
+  lookupController.getCommunityRoles
+);
+router.get(
+  "/community-roles/all",
+  authenticateToken,
+  lookupController.getAllCommunityRoles
+);
+router.post(
+  "/community-roles",
+  authenticateToken,
+  authorize("admin", "superior_general"),
+  lookupController.createCommunityRole
+);
+router.put(
+  "/community-roles/:id",
+  authenticateToken,
+  authorize("admin", "superior_general"),
+  lookupController.updateCommunityRole
+);
+router.delete(
+  "/community-roles/:id",
+  authenticateToken,
+  authorize("admin", "superior_general"),
+  lookupController.deleteCommunityRole
+);
 
 module.exports = router;

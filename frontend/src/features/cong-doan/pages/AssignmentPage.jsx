@@ -12,15 +12,24 @@ import {
 } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { communityService, sisterService } from "@services";
+import { communityService, sisterService, lookupService } from "@services";
 import { formatDate } from "@utils";
 import Breadcrumb from "@components/common/Breadcrumb";
 import DataTable from "@components/tables/DataTable";
 import SearchableSelect from "@components/forms/SearchableSelect";
 import DatePicker from "@components/forms/DatePicker";
+import Select from "@components/forms/Select";
 import "./AssignmentPage.css";
 
-// Role labels and styles
+// Role labels and styles - Default roles
+const defaultRoles = [
+  { code: "superior", name: "Bề trên", color: "#d63031" },
+  { code: "assistant", name: "Phó bề trên", color: "#2d3436" },
+  { code: "secretary", name: "Thư ký", color: "#6c5ce7" },
+  { code: "treasurer", name: "Thủ quỹ", color: "#e84393" },
+  { code: "member", name: "Thành viên", color: "#0984e3" },
+];
+
 const roleConfig = {
   superior: { label: "Bề trên", icon: "fa-crown", className: "role-leader" },
   leader: { label: "Bề trên", icon: "fa-crown", className: "role-leader" },
@@ -102,6 +111,28 @@ const AssignmentPage = () => {
   const [assignments, setAssignments] = useState([]);
   const [allAssignmentsData, setAllAssignmentsData] = useState([]); // Store unfiltered data
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Roles management
+  const [roles, setRoles] = useState(defaultRoles);
+  const [showAddRoleModal, setShowAddRoleModal] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleCode, setNewRoleCode] = useState("");
+  const [newRoleColor, setNewRoleColor] = useState("#0984e3");
+  const [addingRole, setAddingRole] = useState(false);
+
+  // Predefined colors for roles
+  const roleColors = [
+    { value: "#d63031", label: "Đỏ" },
+    { value: "#2d3436", label: "Đen" },
+    { value: "#6c5ce7", label: "Tím" },
+    { value: "#e84393", label: "Hồng" },
+    { value: "#0984e3", label: "Xanh dương" },
+    { value: "#00b894", label: "Xanh lá" },
+    { value: "#fdcb6e", label: "Vàng" },
+    { value: "#e17055", label: "Cam" },
+    { value: "#636e72", label: "Xám" },
+    { value: "#00cec9", label: "Ngọc" },
+  ];
 
   // Filters
   const [filters, setFilters] = useState({
@@ -199,6 +230,9 @@ const AssignmentPage = () => {
         setSisters(loadedSisters);
       }
 
+      // Fetch community roles
+      await fetchCommunityRoles();
+
       // Fetch assignments after loading communities
       if (loadedCommunities.length > 0) {
         await fetchAssignmentsFromAPI(loadedCommunities);
@@ -208,6 +242,85 @@ const AssignmentPage = () => {
       toast.error("Không thể tải dữ liệu");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCommunityRoles = async () => {
+    try {
+      const response = await lookupService.getCommunityRoles();
+      if (response && response.data && response.data.length > 0) {
+        setRoles(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching community roles:", error);
+      // Use default roles if API fails
+      setRoles(defaultRoles);
+    }
+  };
+
+  const handleAddRole = async () => {
+    if (!newRoleName.trim() || !newRoleCode.trim()) {
+      toast.error("Vui lòng nhập mã và tên chức vụ");
+      return;
+    }
+
+    try {
+      setAddingRole(true);
+      const response = await lookupService.createCommunityRole({
+        code: newRoleCode.trim().toLowerCase().replace(/\s+/g, "_"),
+        name: newRoleName.trim(),
+        display_order: roles.length + 1,
+        color: newRoleColor,
+      });
+
+      if (response && response.data) {
+        await fetchCommunityRoles();
+        setNewRoleName("");
+        setNewRoleCode("");
+        setNewRoleColor("#0984e3");
+        setShowAddRoleModal(false);
+        toast.success("Đã thêm chức vụ mới thành công!");
+      }
+    } catch (error) {
+      console.error("Error adding role:", error);
+      toast.error("Không thể thêm chức vụ mới");
+    } finally {
+      setAddingRole(false);
+    }
+  };
+
+  const handleDeleteRole = async (roleCode) => {
+    const role = roles.find((r) => r.code === roleCode);
+    if (!role) return;
+
+    // Check if any assignments exist with this role
+    const assignmentsWithRole = allAssignmentsData.filter(
+      (a) => a.role === roleCode
+    );
+    if (assignmentsWithRole.length > 0) {
+      toast.warning(
+        `Không thể xóa chức vụ "${role.name}" vì đã có ${assignmentsWithRole.length} nữ tu được bổ nhiệm`
+      );
+      return;
+    }
+
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa chức vụ "${role.name}"?`)) {
+      return;
+    }
+
+    try {
+      const response = await lookupService.deleteCommunityRole(role.id);
+      if (response && response.success) {
+        await fetchCommunityRoles();
+        // Reset role selection if deleted role was selected
+        if (formData.role === role.code) {
+          handleFormChange("role", "member");
+        }
+        toast.success("Đã xóa chức vụ thành công!");
+      }
+    } catch (error) {
+      console.error("Error deleting role:", error);
+      toast.error("Không thể xóa chức vụ");
     }
   };
 
@@ -461,8 +574,14 @@ const AssignmentPage = () => {
     });
   };
 
-  // Role badge color
-  const getRoleBadgeColor = (role) => {
+  // Role badge color - get from roles state or default colors
+  const getRoleBadgeColor = (roleCode) => {
+    // First try to find from roles state
+    const role = roles.find((r) => r.code === roleCode);
+    if (role && role.color) {
+      return role.color;
+    }
+    // Fallback to hardcoded colors
     const colors = {
       leader: "#d63031",
       superior: "#d63031",
@@ -474,7 +593,16 @@ const AssignmentPage = () => {
       treasurer: "#e84393",
       member: "#0984e3",
     };
-    return colors[role] || "#6c757d";
+    return colors[roleCode] || "#6c757d";
+  };
+
+  // Get role label from roles state
+  const getRoleLabel = (roleCode) => {
+    const role = roles.find((r) => r.code === roleCode);
+    if (role) return role.name;
+    // Fallback to roleConfig
+    const config = roleConfig[roleCode];
+    return config ? config.label : roleCode;
   };
 
   // DataTable columns
@@ -486,21 +614,10 @@ const AssignmentPage = () => {
       render: (row) => {
         const sister = getSisterById(row.sister_id) || row;
         return (
-          <div>
-            {sister.saint_name && (
-              <div
-                className="text-primary fw-semibold"
-                style={{ fontSize: "0.85rem" }}
-              >
-                {sister.saint_name}
-              </div>
-            )}
-            <div style={{ fontSize: "0.85rem" }}>
-              {sister.birth_name || row.birth_name}
-            </div>
-            <small className="text-muted">
-              {stageLabels[sister.current_stage] || ""}
-            </small>
+          <div className="text-primary fw-semibold">
+            {[sister.saint_name, sister.birth_name || row.birth_name]
+              .filter(Boolean)
+              .join(" ") || "N/A"}
           </div>
         );
       },
@@ -521,7 +638,6 @@ const AssignmentPage = () => {
       label: "Chức Vụ",
       sortable: true,
       render: (row) => {
-        const roleInfo = getRoleConfig(row.role);
         return (
           <Badge
             style={{
@@ -531,7 +647,7 @@ const AssignmentPage = () => {
               fontWeight: 500,
             }}
           >
-            {roleInfo.label}
+            {getRoleLabel(row.role)}
           </Badge>
         );
       },
@@ -728,11 +844,11 @@ const AssignmentPage = () => {
             onChange={(e) => handleFilterChange("role", e.target.value)}
           >
             <option value="">Tất cả chức vụ</option>
-            <option value="superior">Bề trên</option>
-            <option value="assistant">Phó bề trên</option>
-            <option value="secretary">Thư ký</option>
-            <option value="treasurer">Thủ quỹ</option>
-            <option value="member">Thành viên</option>
+            {roles.map((role) => (
+              <option key={role.code} value={role.code}>
+                {role.name}
+              </option>
+            ))}
           </Form.Select>
         </Col>
         <Col md={2}>
@@ -863,17 +979,40 @@ const AssignmentPage = () => {
                   <i className="fas fa-user-tag text-primary me-1"></i>
                   Chức Vụ <span className="text-danger">*</span>
                 </Form.Label>
-                <Form.Select
-                  value={formData.role}
-                  onChange={(e) => handleFormChange("role", e.target.value)}
-                  required
-                >
-                  <option value="member">Thành viên</option>
-                  <option value="superior">Bề trên</option>
-                  <option value="assistant">Phó bề trên</option>
-                  <option value="secretary">Thư ký</option>
-                  <option value="treasurer">Thủ quỹ</option>
-                </Form.Select>
+                <div className="d-flex align-items-center gap-2">
+                  <Form.Select
+                    value={formData.role}
+                    onChange={(e) => handleFormChange("role", e.target.value)}
+                    required
+                    style={{ flex: 1 }}
+                  >
+                    {roles.map((role) => (
+                      <option key={role.code} value={role.code}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Button
+                    variant="outline-success"
+                    size="sm"
+                    onClick={() => setShowAddRoleModal(true)}
+                    title="Thêm chức vụ mới"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <i className="fas fa-plus"></i>
+                  </Button>
+                  {formData.role && (
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => handleDeleteRole(formData.role)}
+                      title="Xóa chức vụ đã chọn"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <i className="fas fa-minus"></i>
+                    </Button>
+                  )}
+                </div>
               </Col>
 
               <Col md={6} className="mb-3">
@@ -1140,6 +1279,132 @@ const AssignmentPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Add Role Modal */}
+      {showAddRoleModal && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="fas fa-plus-circle me-2"></i>
+                  Thêm chức vụ mới
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowAddRoleModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Mã chức vụ <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Ví dụ: coordinator"
+                    value={newRoleCode}
+                    onChange={(e) => setNewRoleCode(e.target.value)}
+                  />
+                  <Form.Text className="text-muted">
+                    Mã sẽ được tự động chuyển sang chữ thường và thay khoảng
+                    trắng bằng dấu gạch dưới
+                  </Form.Text>
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Tên chức vụ <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Ví dụ: Điều phối viên"
+                    value={newRoleName}
+                    onChange={(e) => setNewRoleName(e.target.value)}
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Màu chức vụ <span className="text-danger">*</span>
+                  </Form.Label>
+                  <div className="d-flex flex-wrap gap-2">
+                    {roleColors.map((color) => (
+                      <div
+                        key={color.value}
+                        onClick={() => setNewRoleColor(color.value)}
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          backgroundColor: color.value,
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          border:
+                            newRoleColor === color.value
+                              ? "3px solid #000"
+                              : "2px solid #dee2e6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        title={color.label}
+                      >
+                        {newRoleColor === color.value && (
+                          <i className="fas fa-check text-white"></i>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2">
+                    <small className="text-muted">Xem trước: </small>
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: newRoleColor,
+                        color: "#fff",
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      {newRoleName || "Tên chức vụ"}
+                    </span>
+                  </div>
+                </Form.Group>
+              </div>
+              <div className="modal-footer">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowAddRoleModal(false)}
+                  disabled={addingRole}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleAddRole}
+                  disabled={
+                    addingRole || !newRoleName.trim() || !newRoleCode.trim()
+                  }
+                >
+                  {addingRole ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Đang thêm...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-plus me-2"></i>
+                      Thêm chức vụ
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Container>
   );
 };

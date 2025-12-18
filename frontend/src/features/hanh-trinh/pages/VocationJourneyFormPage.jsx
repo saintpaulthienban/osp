@@ -9,8 +9,10 @@ import {
   Button,
   Form,
   Alert,
+  Badge,
 } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   journeyService,
   sisterService,
@@ -238,12 +240,24 @@ const VocationJourneyFormPage = () => {
       }
 
       if (response.success) {
+        toast.success(
+          isEditMode
+            ? "Cập nhật hành trình thành công!"
+            : "Thêm hành trình mới thành công!"
+        );
         navigate(`/hanh-trinh/${response.data?.id || id}`);
       } else {
+        toast.error(
+          response.error ||
+            (isEditMode
+              ? "Không thể cập nhật hành trình"
+              : "Không thể thêm hành trình")
+        );
         setError(response.error);
       }
     } catch (error) {
       console.error("Error saving journey:", error);
+      toast.error("Có lỗi xảy ra khi lưu hành trình");
       setError("Có lỗi xảy ra khi lưu hành trình");
     } finally {
       setSubmitting(false);
@@ -395,28 +409,37 @@ const VocationJourneyFormPage = () => {
                     <Form.Label className="fw-medium">
                       Giai đoạn <span className="text-danger">*</span>
                     </Form.Label>
-                    <div className="d-flex align-items-center gap-2">
-                      <div className="flex-grow-1">
-                        <Select
-                          name="stage"
-                          value={values.stage}
-                          onChange={handleChange}
-                          onBlur={handleBlur}
-                          error={errors.stage}
-                          touched={touched.stage}
-                          placeholder="Chọn giai đoạn"
-                          options={stages.map((stage) => ({
-                            value: stage.code,
-                            label: stage.name,
-                          }))}
-                        />
+                    <div className="d-flex align-items-stretch gap-2">
+                      <div
+                        className="flex-grow-1"
+                        style={{ display: "flex", alignItems: "stretch" }}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <Select
+                            name="stage"
+                            value={values.stage}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.stage}
+                            touched={touched.stage}
+                            placeholder="Chọn giai đoạn"
+                            options={stages.map((stage) => ({
+                              value: stage.code,
+                              label: stage.name,
+                            }))}
+                          />
+                        </div>
                       </div>
                       <Button
                         variant="outline-success"
                         size="sm"
                         onClick={() => setShowAddStageModal(true)}
                         title="Thêm giai đoạn mới"
-                        style={{ height: "38px", minWidth: "38px" }}
+                        style={{
+                          height: "38px",
+                          minWidth: "38px",
+                          flexShrink: 0,
+                        }}
                       >
                         <i className="fas fa-plus"></i>
                       </Button>
@@ -433,7 +456,11 @@ const VocationJourneyFormPage = () => {
                             }
                           }}
                           title="Xóa giai đoạn đã chọn"
-                          style={{ height: "38px", minWidth: "38px" }}
+                          style={{
+                            height: "38px",
+                            minWidth: "38px",
+                            flexShrink: 0,
+                          }}
                         >
                           <i className="fas fa-minus"></i>
                         </Button>
@@ -726,11 +753,17 @@ const VocationJourneyFormPage = () => {
                   </div>
                   <div className="mt-2">
                     <small className="text-muted">Xem trước: </small>
-                    <Badge
-                      style={{ backgroundColor: newStageColor, color: "#fff" }}
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: newStageColor,
+                        color: "#fff",
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.875rem",
+                      }}
                     >
                       {newStageName || "Tên giai đoạn"}
-                    </Badge>
+                    </span>
                   </div>
                 </Form.Group>
               </div>

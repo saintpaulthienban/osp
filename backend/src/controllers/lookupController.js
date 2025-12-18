@@ -2,6 +2,7 @@
 const JourneyStageModel = require("../models/JourneyStageModel");
 const SisterStatusModel = require("../models/SisterStatusModel");
 const VocationJourneyModel = require("../models/VocationJourneyModel");
+const CommunityRoleModel = require("../models/CommunityRoleModel");
 
 // ============ Journey Stages ============
 
@@ -243,6 +244,140 @@ const getUserRoles = async (req, res) => {
   }
 };
 
+// ============ Community Roles ============
+
+const getCommunityRoles = async (req, res) => {
+  try {
+    const roles = await CommunityRoleModel.getActiveRoles();
+    return res.status(200).json({
+      success: true,
+      data: roles,
+    });
+  } catch (error) {
+    console.error("getCommunityRoles error:", error.message);
+    return res.status(500).json({ message: "Failed to fetch community roles" });
+  }
+};
+
+const getAllCommunityRoles = async (req, res) => {
+  try {
+    const roles = await CommunityRoleModel.getAll();
+    return res.status(200).json({
+      success: true,
+      data: roles,
+    });
+  } catch (error) {
+    console.error("getAllCommunityRoles error:", error.message);
+    return res.status(500).json({ message: "Failed to fetch community roles" });
+  }
+};
+
+const createCommunityRole = async (req, res) => {
+  try {
+    const { code, name, description, display_order, color } = req.body;
+
+    if (!code || !name) {
+      return res.status(400).json({ message: "Code and name are required" });
+    }
+
+    // Check if code already exists
+    const existing = await CommunityRoleModel.findByCode(code);
+    if (existing) {
+      return res.status(400).json({ message: "Mã chức vụ đã tồn tại" });
+    }
+
+    const role = await CommunityRoleModel.create({
+      code,
+      name,
+      description,
+      display_order: display_order || 0,
+      color: color || "#6c757d",
+      is_default: false,
+      is_active: true,
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: role,
+    });
+  } catch (error) {
+    console.error("createCommunityRole error:", error.message);
+    return res.status(500).json({ message: "Failed to create community role" });
+  }
+};
+
+const updateCommunityRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await CommunityRoleModel.findById(id);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Community role not found" });
+    }
+
+    // Prevent updating default roles' code
+    if (
+      existing.is_default &&
+      req.body.code &&
+      req.body.code !== existing.code
+    ) {
+      return res
+        .status(400)
+        .json({ message: "Không thể thay đổi mã của chức vụ mặc định" });
+    }
+
+    const updated = await CommunityRoleModel.update(id, req.body);
+    return res.status(200).json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error("updateCommunityRole error:", error.message);
+    return res.status(500).json({ message: "Failed to update community role" });
+  }
+};
+
+const deleteCommunityRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await CommunityRoleModel.findById(id);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Community role not found" });
+    }
+
+    // Prevent deleting default roles
+    if (existing.is_default) {
+      return res.status(400).json({
+        message: "Không thể xóa chức vụ mặc định",
+      });
+    }
+
+    // Check if role is being used in community_members table
+    const usageCount = await CommunityRoleModel.executeQuery(
+      "SELECT COUNT(*) as count FROM community_members WHERE role = ?",
+      [existing.code]
+    );
+
+    if (usageCount[0].count > 0) {
+      return res.status(400).json({
+        message: `Không thể xóa chức vụ này vì đang được sử dụng bởi ${usageCount[0].count} bổ nhiệm`,
+        usageCount: usageCount[0].count,
+      });
+    }
+
+    // Hard delete if not used
+    await CommunityRoleModel.delete(id);
+    return res.status(200).json({
+      success: true,
+      message: "Đã xóa chức vụ thành công",
+    });
+  } catch (error) {
+    console.error("deleteCommunityRole error:", error.message);
+    return res.status(500).json({ message: "Failed to delete community role" });
+  }
+};
+
 module.exports = {
   getJourneyStages,
   getAllJourneyStages,
@@ -255,4 +390,9 @@ module.exports = {
   updateSisterStatus,
   deleteSisterStatus,
   getUserRoles,
+  getCommunityRoles,
+  getAllCommunityRoles,
+  createCommunityRole,
+  updateCommunityRole,
+  deleteCommunityRole,
 };
