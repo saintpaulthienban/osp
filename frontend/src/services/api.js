@@ -3,9 +3,16 @@
 import axios from "axios";
 import { toast } from "react-toastify";
 
+// Primary backend URL (Railway), fallback to localhost
+const RAILWAY_API = "https://osp-backend-production.up.railway.app/api";
+const LOCALHOST_API = "http://localhost:5000/api";
+
+// Try Railway first, fallback to localhost if unavailable
+let baseURL = RAILWAY_API;
+
 // Create axios instance
 const api = axios.create({
-  baseURL: "https://osp-backend-production.up.railway.app/api", // Hardcoded for Railway
+  baseURL,
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
@@ -106,9 +113,19 @@ api.interceptors.response.use(
           toast.error(data.message || "Có lỗi xảy ra. Vui lòng thử lại.");
       }
     } else if (error.request) {
-      toast.error(
-        "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
-      );
+      // Network error - try fallback to localhost if currently using Railway
+      if (api.defaults.baseURL === RAILWAY_API) {
+        console.warn("⚠️ Railway backend unreachable, switching to localhost...");
+        api.defaults.baseURL = LOCALHOST_API;
+        toast.info("Chuyển sang server local...");
+        
+        // Retry the request with localhost
+        return api.request(error.config);
+      } else {
+        toast.error(
+          "Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng."
+        );
+      }
     } else {
       toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
     }
