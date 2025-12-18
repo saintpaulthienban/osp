@@ -17,11 +17,171 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Font,
+  pdf,
+} from "@react-pdf/renderer";
 import { communityService } from "@services";
 import { formatDate } from "@utils";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
 import "./CommunityDetailPage.css";
+
+// Đăng ký Font Roboto hỗ trợ tiếng Việt
+Font.register({
+  family: "Roboto",
+  fonts: [
+    {
+      src: "https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf",
+      fontWeight: "normal",
+    },
+    {
+      src: "https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf",
+      fontWeight: "bold",
+    },
+  ],
+});
+
+// Styles cho PDF
+const pdfStyles = StyleSheet.create({
+  page: {
+    flexDirection: "column",
+    padding: 30,
+    fontFamily: "Roboto",
+    fontSize: 10,
+  },
+  header: {
+    backgroundColor: "#34495e",
+    padding: 15,
+    marginBottom: 15,
+    marginHorizontal: -30,
+    marginTop: -30,
+  },
+  headerTitle: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    color: "#ffffff",
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 3,
+  },
+  headerDate: {
+    color: "#ffffff",
+    fontSize: 9,
+    textAlign: "center",
+  },
+  basicInfoBox: {
+    backgroundColor: "#ecf0f1",
+    padding: 10,
+    marginBottom: 15,
+  },
+  basicInfoName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 3,
+  },
+  basicInfoText: {
+    fontSize: 10,
+    marginBottom: 2,
+  },
+  sectionTitle: {
+    backgroundColor: "#2980b9",
+    color: "#ffffff",
+    padding: 6,
+    fontSize: 11,
+    fontWeight: "bold",
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  row: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  label: {
+    fontWeight: "bold",
+    width: "35%",
+    fontSize: 9,
+  },
+  value: {
+    width: "65%",
+    fontSize: 9,
+  },
+  twoColumnRow: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  column: {
+    width: "50%",
+    flexDirection: "row",
+  },
+  columnLabel: {
+    fontWeight: "bold",
+    width: "40%",
+    fontSize: 9,
+  },
+  columnValue: {
+    width: "60%",
+    fontSize: 9,
+  },
+  table: {
+    marginTop: 5,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#2980b9",
+    padding: 5,
+  },
+  tableHeaderCell: {
+    color: "#ffffff",
+    fontSize: 8,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ecf0f1",
+    padding: 4,
+  },
+  tableRowAlt: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ecf0f1",
+    padding: 4,
+    backgroundColor: "#f9f9f9",
+  },
+  tableCell: {
+    fontSize: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 9,
+    color: "#7f8c8d",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 20,
+    left: 30,
+    right: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    fontSize: 8,
+    color: "#7f8c8d",
+  },
+  pageNumber: {
+    textAlign: "center",
+  },
+});
 
 const getRoleLabel = (role) => {
   const roles = {
@@ -205,6 +365,204 @@ const CommunityDetailPage = () => {
     navigate(`/nu-tu/${memberId}`);
   };
 
+  // PDF Document Component
+  const CommunityPDFDocument = ({ community, members }) => {
+    const InfoRow = ({ label, value }) => (
+      <View style={pdfStyles.row}>
+        <Text style={pdfStyles.label}>{label}:</Text>
+        <Text style={pdfStyles.value}>{value || "Chưa cập nhật"}</Text>
+      </View>
+    );
+
+    const TwoColumnRow = ({ label1, value1, label2, value2 }) => (
+      <View style={pdfStyles.twoColumnRow}>
+        <View style={pdfStyles.column}>
+          <Text style={pdfStyles.columnLabel}>{label1}:</Text>
+          <Text style={pdfStyles.columnValue}>{value1 || "Chưa cập nhật"}</Text>
+        </View>
+        <View style={pdfStyles.column}>
+          <Text style={pdfStyles.columnLabel}>{label2}:</Text>
+          <Text style={pdfStyles.columnValue}>{value2 || "Chưa cập nhật"}</Text>
+        </View>
+      </View>
+    );
+
+    return (
+      <Document>
+        <Page size="A4" style={pdfStyles.page}>
+          {/* Header */}
+          <View style={pdfStyles.header}>
+            <Text style={pdfStyles.headerTitle}>THÔNG TIN CỘNG ĐOÀN</Text>
+            <Text style={pdfStyles.headerSubtitle}>
+              Hội Dòng Thánh Phaolô Thiện Bản
+            </Text>
+            <Text style={pdfStyles.headerDate}>
+              Ngày xuất: {formatDate(new Date())}
+            </Text>
+          </View>
+
+          {/* Basic Info Box */}
+          <View style={pdfStyles.basicInfoBox}>
+            <Text style={pdfStyles.basicInfoName}>
+              {community.name || "N/A"}
+            </Text>
+            <Text style={pdfStyles.basicInfoText}>
+              Mã số: {community.code || "N/A"}
+            </Text>
+            <Text style={pdfStyles.basicInfoText}>
+              Trạng thái:{" "}
+              {community.status === "active"
+                ? "Đang hoạt động"
+                : "Không hoạt động"}
+            </Text>
+          </View>
+
+          {/* Section 1: Thông tin cơ bản */}
+          <Text style={pdfStyles.sectionTitle}>I. THÔNG TIN CƠ BẢN</Text>
+          <TwoColumnRow
+            label1="Tên cộng đoàn"
+            value1={community.name}
+            label2="Mã số"
+            value2={community.code}
+          />
+          <TwoColumnRow
+            label1="Ngày thành lập"
+            value1={formatDate(community.established_date)}
+            label2="Trạng thái"
+            value2={
+              community.status === "active"
+                ? "Đang hoạt động"
+                : "Không hoạt động"
+            }
+          />
+          <InfoRow label="Địa chỉ" value={community.address} />
+          <TwoColumnRow
+            label1="Điện thoại"
+            value1={community.phone}
+            label2="Email"
+            value2={community.email}
+          />
+          <InfoRow label="Mô tả" value={community.description} />
+
+          {/* Section 2: Thống kê */}
+          <Text style={pdfStyles.sectionTitle}>II. THỐNG KÊ</Text>
+          <TwoColumnRow
+            label1="Tổng số thành viên"
+            value1={members.length.toString()}
+            label2="Bề trên"
+            value2={
+              members.find((m) => m.role === "superior")?.birth_name ||
+              "Chưa có"
+            }
+          />
+          <TwoColumnRow
+            label1="Phó bề trên"
+            value1={
+              members.find((m) => m.role === "assistant")?.birth_name ||
+              "Chưa có"
+            }
+            label2="Thủ quỹ"
+            value2={
+              members.find((m) => m.role === "treasurer")?.birth_name ||
+              "Chưa có"
+            }
+          />
+
+          {/* Section 3: Danh sách thành viên */}
+          <Text style={pdfStyles.sectionTitle}>
+            III. DANH SÁCH THÀNH VIÊN ({members.length})
+          </Text>
+          {members && members.length > 0 ? (
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "8%" }]}>
+                  STT
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Mã số
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "25%" }]}>
+                  Họ tên
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "17%" }]}>
+                  Tên thánh
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "18%" }]}>
+                  Vai trò
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "17%" }]}>
+                  Ngày tham gia
+                </Text>
+              </View>
+              {members.map((member, index) => (
+                <View
+                  key={member.id || index}
+                  style={
+                    index % 2 === 0 ? pdfStyles.tableRow : pdfStyles.tableRowAlt
+                  }
+                >
+                  <Text style={[pdfStyles.tableCell, { width: "8%" }]}>
+                    {index + 1}
+                  </Text>
+                  <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                    {member.sister_code || ""}
+                  </Text>
+                  <Text style={[pdfStyles.tableCell, { width: "25%" }]}>
+                    {member.birth_name || ""}
+                  </Text>
+                  <Text style={[pdfStyles.tableCell, { width: "17%" }]}>
+                    {member.saint_name || ""}
+                  </Text>
+                  <Text style={[pdfStyles.tableCell, { width: "18%" }]}>
+                    {getRoleLabel(member.role)}
+                  </Text>
+                  <Text style={[pdfStyles.tableCell, { width: "17%" }]}>
+                    {formatDate(member.start_date) || ""}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={pdfStyles.emptyText}>Chưa có thành viên nào</Text>
+          )}
+
+          {/* Footer */}
+          <View style={pdfStyles.footer} fixed>
+            <Text>Thông tin Cộng Đoàn - {community.name || "N/A"}</Text>
+            <Text
+              render={({ pageNumber, totalPages }) =>
+                `Trang ${pageNumber}/${totalPages}`
+              }
+            />
+          </View>
+        </Page>
+      </Document>
+    );
+  };
+
+  // Export PDF function
+  const handleExportPDF = async () => {
+    try {
+      const blob = await pdf(
+        <CommunityPDFDocument community={community} members={members} />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      const fileName = `ThongTinCongDoan_${
+        community.name?.replace(/\s+/g, "_") || "CongDoan"
+      }_${new Date().toISOString().slice(0, 10)}.pdf`;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      alert("Có lỗi khi xuất PDF. Vui lòng thử lại.");
+    }
+  };
+
   if (loading) {
     return (
       <div
@@ -242,6 +600,9 @@ const CommunityDetailPage = () => {
       {/* Action Buttons */}
       <div className="d-flex justify-content-end align-items-center mb-4">
         <div className="action-buttons">
+          <Button variant="primary" onClick={handleExportPDF}>
+            <i className="fas fa-file-pdf me-2"></i>Xuất PDF
+          </Button>
           <Button variant="success" onClick={handleEdit}>
             <i className="fas fa-edit me-2"></i>Chỉnh sửa
           </Button>

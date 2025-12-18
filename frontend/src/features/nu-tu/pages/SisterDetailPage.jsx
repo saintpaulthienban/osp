@@ -12,12 +12,172 @@ import {
   Badge,
 } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  Font,
+  pdf,
+} from "@react-pdf/renderer";
 import { sisterService } from "@services";
 import { formatDate, calculateAge, resolveMediaUrl } from "@utils";
 import { JOURNEY_STAGE_LABELS } from "@utils/constants";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
 import "./SisterDetailPage.css";
+
+// Đăng ký Font Roboto hỗ trợ tiếng Việt
+Font.register({
+  family: "Roboto",
+  fonts: [
+    {
+      src: "https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-regular-webfont.ttf",
+      fontWeight: "normal",
+    },
+    {
+      src: "https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-bold-webfont.ttf",
+      fontWeight: "bold",
+    },
+  ],
+});
+
+// Styles cho PDF
+const pdfStyles = StyleSheet.create({
+  page: {
+    flexDirection: "column",
+    padding: 30,
+    fontFamily: "Roboto",
+    fontSize: 10,
+  },
+  header: {
+    backgroundColor: "#34495e",
+    padding: 15,
+    marginBottom: 15,
+    marginHorizontal: -30,
+    marginTop: -30,
+  },
+  headerTitle: {
+    color: "#ffffff",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 5,
+  },
+  headerSubtitle: {
+    color: "#ffffff",
+    fontSize: 12,
+    textAlign: "center",
+    marginBottom: 3,
+  },
+  headerDate: {
+    color: "#ffffff",
+    fontSize: 9,
+    textAlign: "center",
+  },
+  basicInfoBox: {
+    backgroundColor: "#ecf0f1",
+    padding: 10,
+    marginBottom: 15,
+  },
+  basicInfoName: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginBottom: 3,
+  },
+  basicInfoText: {
+    fontSize: 10,
+    marginBottom: 2,
+  },
+  sectionTitle: {
+    backgroundColor: "#2980b9",
+    color: "#ffffff",
+    padding: 6,
+    fontSize: 11,
+    fontWeight: "bold",
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  row: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  label: {
+    fontWeight: "bold",
+    width: "35%",
+    fontSize: 9,
+  },
+  value: {
+    width: "65%",
+    fontSize: 9,
+  },
+  twoColumnRow: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  column: {
+    width: "50%",
+    flexDirection: "row",
+  },
+  columnLabel: {
+    fontWeight: "bold",
+    width: "40%",
+    fontSize: 9,
+  },
+  columnValue: {
+    width: "60%",
+    fontSize: 9,
+  },
+  table: {
+    marginTop: 5,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    backgroundColor: "#2980b9",
+    padding: 5,
+  },
+  tableHeaderCell: {
+    color: "#ffffff",
+    fontSize: 8,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  tableRow: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ecf0f1",
+    padding: 4,
+  },
+  tableRowAlt: {
+    flexDirection: "row",
+    borderBottomWidth: 1,
+    borderBottomColor: "#ecf0f1",
+    padding: 4,
+    backgroundColor: "#f9f9f9",
+  },
+  tableCell: {
+    fontSize: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 9,
+    color: "#7f8c8d",
+  },
+  footer: {
+    position: "absolute",
+    bottom: 20,
+    left: 30,
+    right: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    fontSize: 8,
+    color: "#7f8c8d",
+  },
+  pageNumber: {
+    textAlign: "center",
+  },
+});
 
 const SisterDetailPage = () => {
   const { id } = useParams();
@@ -56,6 +216,526 @@ const SisterDetailPage = () => {
       } catch (error) {
         console.error("Error deleting sister:", error);
       }
+    }
+  };
+
+  // PDF Document Component
+  const SisterPDFDocument = ({ sister }) => {
+    const currentStage = getCurrentStage(sister.vocationJourney);
+    const stageName = currentStage
+      ? JOURNEY_STAGE_LABELS[currentStage.stage] || currentStage.stage
+      : "Chưa xác định";
+    const fullName = [sister.saint_name, sister.birth_name]
+      .filter(Boolean)
+      .join(" ");
+
+    const eduLevelLabels = {
+      doctorate: "Tiến sĩ",
+      master: "Thạc sĩ",
+      bachelor: "Cử nhân",
+      college: "Cao đẳng",
+      vocational: "Trung cấp",
+      high_school: "THPT",
+      certificate: "Chứng chỉ",
+      other: "Khác",
+    };
+
+    const InfoRow = ({ label, value }) => (
+      <View style={pdfStyles.row}>
+        <Text style={pdfStyles.label}>{label}:</Text>
+        <Text style={pdfStyles.value}>{value || "Chưa cập nhật"}</Text>
+      </View>
+    );
+
+    const TwoColumnRow = ({ label1, value1, label2, value2 }) => (
+      <View style={pdfStyles.twoColumnRow}>
+        <View style={pdfStyles.column}>
+          <Text style={pdfStyles.columnLabel}>{label1}:</Text>
+          <Text style={pdfStyles.columnValue}>{value1 || "Chưa cập nhật"}</Text>
+        </View>
+        <View style={pdfStyles.column}>
+          <Text style={pdfStyles.columnLabel}>{label2}:</Text>
+          <Text style={pdfStyles.columnValue}>{value2 || "Chưa cập nhật"}</Text>
+        </View>
+      </View>
+    );
+
+    return (
+      <Document>
+        <Page size="A4" style={pdfStyles.page}>
+          {/* Header */}
+          <View style={pdfStyles.header}>
+            <Text style={pdfStyles.headerTitle}>THÔNG TIN NỮ TU</Text>
+            <Text style={pdfStyles.headerSubtitle}>
+              Hội Dòng Thánh Phaolô Thiện Bản
+            </Text>
+            <Text style={pdfStyles.headerDate}>
+              Ngày xuất: {formatDate(new Date())}
+            </Text>
+          </View>
+
+          {/* Basic Info Box */}
+          <View style={pdfStyles.basicInfoBox}>
+            <Text style={pdfStyles.basicInfoName}>{fullName || "N/A"}</Text>
+            <Text style={pdfStyles.basicInfoText}>
+              Mã số: {sister.code || "N/A"}
+            </Text>
+            <Text style={pdfStyles.basicInfoText}>Giai đoạn: {stageName}</Text>
+          </View>
+
+          {/* Section 1: Thông tin cá nhân */}
+          <Text style={pdfStyles.sectionTitle}>I. THÔNG TIN CÁ NHÂN</Text>
+          <TwoColumnRow
+            label1="Họ và tên"
+            value1={sister.birth_name}
+            label2="Tên thánh"
+            value2={sister.saint_name}
+          />
+          <TwoColumnRow
+            label1="Ngày sinh"
+            value1={formatDate(sister.date_of_birth)}
+            label2="Tuổi"
+            value2={
+              sister.date_of_birth
+                ? `${calculateAge(sister.date_of_birth)} tuổi`
+                : ""
+            }
+          />
+          <TwoColumnRow
+            label1="Nơi sinh"
+            value1={sister.place_of_birth}
+            label2="Quê quán"
+            value2={sister.hometown}
+          />
+          <TwoColumnRow
+            label1="Quốc tịch"
+            value1={sister.nationality}
+            label2="CMND/CCCD"
+            value2={sister.id_card}
+          />
+          <TwoColumnRow
+            label1="Điện thoại"
+            value1={sister.phone}
+            label2="Email"
+            value2={sister.email}
+          />
+          <InfoRow
+            label="Địa chỉ thường trú"
+            value={sister.permanent_address}
+          />
+          <InfoRow label="Địa chỉ hiện tại" value={sister.current_address} />
+
+          {/* Section 2: Thông tin gia đình */}
+          <Text style={pdfStyles.sectionTitle}>II. THÔNG TIN GIA ĐÌNH</Text>
+          <TwoColumnRow
+            label1="Tên cha"
+            value1={sister.father_name}
+            label2="Nghề nghiệp cha"
+            value2={sister.father_occupation}
+          />
+          <TwoColumnRow
+            label1="Tên mẹ"
+            value1={sister.mother_name}
+            label2="Nghề nghiệp mẹ"
+            value2={sister.mother_occupation}
+          />
+          <TwoColumnRow
+            label1="Số anh chị em"
+            value1={sister.siblings_count?.toString()}
+            label2="Tôn giáo gia đình"
+            value2={sister.family_religion}
+          />
+          <InfoRow label="Địa chỉ gia đình" value={sister.family_address} />
+          <TwoColumnRow
+            label1="Liên hệ khẩn cấp"
+            value1={sister.emergency_contact_name}
+            label2="SĐT khẩn cấp"
+            value2={sister.emergency_contact_phone}
+          />
+
+          {/* Section 3: Bí tích */}
+          <Text style={pdfStyles.sectionTitle}>III. BÍ TÍCH</Text>
+          <TwoColumnRow
+            label1="Ngày rửa tội"
+            value1={formatDate(sister.baptism_date)}
+            label2="Nơi rửa tội"
+            value2={sister.baptism_place}
+          />
+          <TwoColumnRow
+            label1="Ngày thêm sức"
+            value1={formatDate(sister.confirmation_date)}
+            label2="Ngày rước lễ lần đầu"
+            value2={formatDate(sister.first_communion_date)}
+          />
+
+          {/* Footer */}
+          <View style={pdfStyles.footer} fixed>
+            <Text>Thông tin Nữ Tu - {sister.birth_name || "N/A"}</Text>
+            <Text
+              render={({ pageNumber, totalPages }) =>
+                `Trang ${pageNumber}/${totalPages}`
+              }
+            />
+          </View>
+        </Page>
+
+        {/* Page 2: Hành trình, Học vấn, Sứ vụ */}
+        <Page size="A4" style={pdfStyles.page}>
+          {/* Section 4: Hành trình ơn gọi */}
+          <Text style={pdfStyles.sectionTitle}>IV. HÀNH TRÌNH ƠN GỌI</Text>
+          {sister.vocationJourney && sister.vocationJourney.length > 0 ? (
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "8%" }]}>
+                  STT
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "22%" }]}>
+                  Giai đoạn
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Bắt đầu
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Kết thúc
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "20%" }]}>
+                  Cộng đoàn
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "20%" }]}>
+                  Người hướng dẫn
+                </Text>
+              </View>
+              {[...sister.vocationJourney]
+                .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+                .map((j, index) => (
+                  <View
+                    key={j.id || index}
+                    style={
+                      index % 2 === 0
+                        ? pdfStyles.tableRow
+                        : pdfStyles.tableRowAlt
+                    }
+                  >
+                    <Text style={[pdfStyles.tableCell, { width: "8%" }]}>
+                      {index + 1}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "22%" }]}>
+                      {JOURNEY_STAGE_LABELS[j.stage] || j.stage || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {formatDate(j.start_date) || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {j.end_date ? formatDate(j.end_date) : "Hiện tại"}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "20%" }]}>
+                      {j.community_name || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "20%" }]}>
+                      {j.supervisor_name || ""}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          ) : (
+            <Text style={pdfStyles.emptyText}>
+              Chưa có thông tin hành trình
+            </Text>
+          )}
+
+          {/* Section 5: Học vấn */}
+          <Text style={pdfStyles.sectionTitle}>V. HỌC VẤN</Text>
+          {sister.education && sister.education.length > 0 ? (
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "8%" }]}>
+                  STT
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Trình độ
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "25%" }]}>
+                  Trường
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "20%" }]}>
+                  Ngành
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "16%" }]}>
+                  Bắt đầu
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "16%" }]}>
+                  Kết thúc
+                </Text>
+              </View>
+              {[...sister.education]
+                .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+                .map((e, index) => (
+                  <View
+                    key={e.id || index}
+                    style={
+                      index % 2 === 0
+                        ? pdfStyles.tableRow
+                        : pdfStyles.tableRowAlt
+                    }
+                  >
+                    <Text style={[pdfStyles.tableCell, { width: "8%" }]}>
+                      {index + 1}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {eduLevelLabels[e.level] || e.level || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "25%" }]}>
+                      {e.institution || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "20%" }]}>
+                      {e.major || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "16%" }]}>
+                      {formatDate(e.start_date) || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "16%" }]}>
+                      {e.end_date ? formatDate(e.end_date) : "Hiện tại"}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          ) : (
+            <Text style={pdfStyles.emptyText}>Chưa có thông tin học vấn</Text>
+          )}
+
+          {/* Section 6: Sứ vụ */}
+          <Text style={pdfStyles.sectionTitle}>VI. SỨ VỤ</Text>
+          {sister.missions && sister.missions.length > 0 ? (
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "8%" }]}>
+                  STT
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "22%" }]}>
+                  Chức vụ
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "25%" }]}>
+                  Tổ chức
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Loại
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Bắt đầu
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Kết thúc
+                </Text>
+              </View>
+              {[...sister.missions]
+                .sort((a, b) => new Date(a.start_date) - new Date(b.start_date))
+                .map((m, index) => (
+                  <View
+                    key={m.id || index}
+                    style={
+                      index % 2 === 0
+                        ? pdfStyles.tableRow
+                        : pdfStyles.tableRowAlt
+                    }
+                  >
+                    <Text style={[pdfStyles.tableCell, { width: "8%" }]}>
+                      {index + 1}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "22%" }]}>
+                      {m.position || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "25%" }]}>
+                      {m.organization || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {m.type || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {formatDate(m.start_date) || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {m.end_date ? formatDate(m.end_date) : "Hiện tại"}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          ) : (
+            <Text style={pdfStyles.emptyText}>Chưa có thông tin sứ vụ</Text>
+          )}
+
+          {/* Footer */}
+          <View style={pdfStyles.footer} fixed>
+            <Text>Thông tin Nữ Tu - {sister.birth_name || "N/A"}</Text>
+            <Text
+              render={({ pageNumber, totalPages }) =>
+                `Trang ${pageNumber}/${totalPages}`
+              }
+            />
+          </View>
+        </Page>
+
+        {/* Page 3: Sức khỏe, Đánh giá, Ghi chú */}
+        <Page size="A4" style={pdfStyles.page}>
+          {/* Section 7: Sức khỏe */}
+          <Text style={pdfStyles.sectionTitle}>VII. SỨC KHỎE</Text>
+          {sister.health_records && sister.health_records.length > 0 ? (
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "8%" }]}>
+                  STT
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Ngày khám
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "20%" }]}>
+                  Cơ sở
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "15%" }]}>
+                  Tình trạng
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "22%" }]}>
+                  Chẩn đoán
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "20%" }]}>
+                  Bác sĩ
+                </Text>
+              </View>
+              {[...sister.health_records]
+                .sort((a, b) => new Date(b.check_date) - new Date(a.check_date))
+                .slice(0, 5)
+                .map((h, index) => (
+                  <View
+                    key={h.id || index}
+                    style={
+                      index % 2 === 0
+                        ? pdfStyles.tableRow
+                        : pdfStyles.tableRowAlt
+                    }
+                  >
+                    <Text style={[pdfStyles.tableCell, { width: "8%" }]}>
+                      {index + 1}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {formatDate(h.check_date) || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "20%" }]}>
+                      {h.facility || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
+                      {h.health_status || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "22%" }]}>
+                      {h.diagnosis || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "20%" }]}>
+                      {h.doctor || ""}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          ) : (
+            <Text style={pdfStyles.emptyText}>Chưa có hồ sơ sức khỏe</Text>
+          )}
+
+          {/* Section 8: Đánh giá */}
+          <Text style={pdfStyles.sectionTitle}>VIII. ĐÁNH GIÁ</Text>
+          {sister.evaluations && sister.evaluations.length > 0 ? (
+            <View style={pdfStyles.table}>
+              <View style={pdfStyles.tableHeader}>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "8%" }]}>
+                  STT
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "25%" }]}>
+                  Kỳ đánh giá
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "17%" }]}>
+                  Ngày
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "30%" }]}>
+                  Người đánh giá
+                </Text>
+                <Text style={[pdfStyles.tableHeaderCell, { width: "20%" }]}>
+                  Điểm
+                </Text>
+              </View>
+              {[...sister.evaluations]
+                .sort(
+                  (a, b) =>
+                    new Date(b.evaluation_date || b.created_at) -
+                    new Date(a.evaluation_date || a.created_at)
+                )
+                .slice(0, 5)
+                .map((e, index) => (
+                  <View
+                    key={e.id || index}
+                    style={
+                      index % 2 === 0
+                        ? pdfStyles.tableRow
+                        : pdfStyles.tableRowAlt
+                    }
+                  >
+                    <Text style={[pdfStyles.tableCell, { width: "8%" }]}>
+                      {index + 1}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "25%" }]}>
+                      {e.period || e.evaluation_type || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "17%" }]}>
+                      {formatDate(e.evaluation_date) || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "30%" }]}>
+                      {e.evaluator_name || ""}
+                    </Text>
+                    <Text style={[pdfStyles.tableCell, { width: "20%" }]}>
+                      {e.overall_rating ? `${e.overall_rating}/100` : ""}
+                    </Text>
+                  </View>
+                ))}
+            </View>
+          ) : (
+            <Text style={pdfStyles.emptyText}>Chưa có đánh giá</Text>
+          )}
+
+          {/* Section 9: Ghi chú */}
+          {sister.notes && (
+            <>
+              <Text style={pdfStyles.sectionTitle}>IX. GHI CHÚ</Text>
+              <Text style={{ fontSize: 9 }}>{sister.notes}</Text>
+            </>
+          )}
+
+          {/* Footer */}
+          <View style={pdfStyles.footer} fixed>
+            <Text>Thông tin Nữ Tu - {sister.birth_name || "N/A"}</Text>
+            <Text
+              render={({ pageNumber, totalPages }) =>
+                `Trang ${pageNumber}/${totalPages}`
+              }
+            />
+          </View>
+        </Page>
+      </Document>
+    );
+  };
+
+  // Export PDF function
+  const handleExportPDF = async () => {
+    try {
+      const blob = await pdf(<SisterPDFDocument sister={sister} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `ThongTinNuTu_${(sister.birth_name || "NuTu").replace(
+        /\s+/g,
+        "_"
+      )}_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Có lỗi khi tạo file PDF. Vui lòng thử lại.");
     }
   };
 
@@ -99,6 +779,10 @@ const SisterDetailPage = () => {
       {/* Action Buttons */}
       <div className="d-flex justify-content-end align-items-center mb-4">
         <div className="action-buttons">
+          <Button variant="primary" onClick={handleExportPDF}>
+            <i className="fas fa-file-pdf me-2"></i>
+            Xuất PDF
+          </Button>
           <Button variant="success" onClick={handleEdit}>
             <i className="fas fa-edit me-2"></i>
             Chỉnh sửa
