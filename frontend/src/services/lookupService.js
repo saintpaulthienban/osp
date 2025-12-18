@@ -123,6 +123,43 @@ const lookupService = {
       throw error;
     }
   },
+
+  // Education Levels
+  getEducationLevels: async () => {
+    try {
+      const response = await api.get("/lookup/education-levels");
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  createEducationLevel: async (data) => {
+    try {
+      const response = await api.post("/lookup/education-levels", data);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  updateEducationLevel: async (id, data) => {
+    try {
+      const response = await api.put(`/lookup/education-levels/${id}`, data);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  deleteEducationLevel: async (id) => {
+    try {
+      const response = await api.delete(`/lookup/education-levels/${id}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default lookupService;

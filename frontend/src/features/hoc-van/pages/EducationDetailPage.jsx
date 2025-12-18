@@ -22,17 +22,10 @@ import {
   FaUser,
   FaPaperclip,
 } from "react-icons/fa";
-import { educationService } from "@services";
+import { educationService, lookupService } from "@services";
 import Breadcrumb from "@components/common/Breadcrumb";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import "./EducationDetailPage.css";
-
-const levelLabels = {
-  secondary: "Trung học",
-  bachelor: "Đại học",
-  master: "Thạc sĩ",
-  doctorate: "Tiến sĩ",
-};
 
 const statusMap = {
   dang_hoc: { label: "Đang học", variant: "primary" },
@@ -71,8 +64,22 @@ const EducationDetailPage = () => {
   const [education, setEducation] = useState(preloadedEducation);
   const [loading, setLoading] = useState(!preloadedEducation);
   const [error, setError] = useState("");
+  const [levels, setLevels] = useState([]);
 
   useEffect(() => {
+    // Fetch education levels
+    const fetchLevels = async () => {
+      try {
+        const response = await lookupService.getEducationLevels();
+        if (response && response.data) {
+          setLevels(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching education levels:", error);
+      }
+    };
+    fetchLevels();
+
     // Nếu đã có preloaded data, không cần fetch lại
     if (preloadedEducation && String(preloadedEducation.id) === String(id)) {
       setEducation(preloadedEducation);
@@ -141,6 +148,12 @@ const EducationDetailPage = () => {
   };
   const documents = parseDocumentsValue(education.documents);
 
+  // Get level name from API data
+  const getLevelLabel = (levelCode) => {
+    const level = levels.find((l) => l.code === levelCode);
+    return level ? level.name : levelCode || "Khác";
+  };
+
   return (
     <Container fluid className="py-4">
       <Breadcrumb
@@ -200,9 +213,7 @@ const EducationDetailPage = () => {
                 </Col>
                 <Col md={6} className="text-md-end mt-3 mt-md-0">
                   <div className="text-muted">Trình độ</div>
-                  <Badge bg="dark">
-                    {levelLabels[education.level] || education.level || "Khác"}
-                  </Badge>
+                  <Badge bg="dark">{getLevelLabel(education.level)}</Badge>
                 </Col>
               </Row>
 

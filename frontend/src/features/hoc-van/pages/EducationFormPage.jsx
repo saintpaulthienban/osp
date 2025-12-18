@@ -19,12 +19,34 @@ import {
   FaPaperclip,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { educationService, sisterService } from "@services";
+import { educationService, sisterService, lookupService } from "@services";
 import Breadcrumb from "@components/common/Breadcrumb";
 import MultiFileUpload from "@components/forms/MultiFileUpload";
 import DatePicker from "@components/forms/DatePicker";
 import SearchableSelect from "@components/forms/SearchableSelect";
 import "./EducationDetailPage.css";
+
+// Default education levels (fallback)
+const defaultLevels = [
+  { code: "secondary", name: "Trung học", color: "#6c757d" },
+  { code: "bachelor", name: "Đại học", color: "#0d6efd" },
+  { code: "master", name: "Thạc sĩ", color: "#6f42c1" },
+  { code: "doctorate", name: "Tiến sĩ", color: "#dc3545" },
+];
+
+// Predefined colors for levels
+const levelColors = [
+  { value: "#6c757d", label: "Xám" },
+  { value: "#17a2b8", label: "Xanh nhạt" },
+  { value: "#20c997", label: "Xanh ngọc" },
+  { value: "#fd7e14", label: "Cam" },
+  { value: "#0d6efd", label: "Xanh dương" },
+  { value: "#6f42c1", label: "Tím" },
+  { value: "#dc3545", label: "Đỏ" },
+  { value: "#ffc107", label: "Vàng" },
+  { value: "#198754", label: "Xanh lá" },
+  { value: "#adb5bd", label: "Bạc" },
+];
 
 // Chuẩn hóa danh sách nữ tu, loại bỏ trùng lặp
 const normalizeSisters = (rawList = []) => {
@@ -103,6 +125,14 @@ const EducationFormPage = () => {
   const [sisters, setSisters] = useState([]);
   const [documents, setDocuments] = useState([]);
 
+  // Education levels management
+  const [levels, setLevels] = useState(defaultLevels);
+  const [showAddLevelModal, setShowAddLevelModal] = useState(false);
+  const [newLevelName, setNewLevelName] = useState("");
+  const [newLevelCode, setNewLevelCode] = useState("");
+  const [newLevelColor, setNewLevelColor] = useState("#0d6efd");
+  const [addingLevel, setAddingLevel] = useState(false);
+
   const [formData, setFormData] = useState({
     ...defaultFormState,
     sister_id: sisterId || "",
@@ -110,10 +140,83 @@ const EducationFormPage = () => {
 
   useEffect(() => {
     fetchSisters();
+    fetchEducationLevels();
     if (isEdit) {
       fetchEducation();
     }
   }, [id]);
+
+  const fetchEducationLevels = async () => {
+    try {
+      const response = await lookupService.getEducationLevels();
+      if (response && response.data && response.data.length > 0) {
+        setLevels(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching education levels:", error);
+      // Use default levels if API fails
+      setLevels(defaultLevels);
+    }
+  };
+
+  const handleAddLevel = async () => {
+    if (!newLevelName.trim() || !newLevelCode.trim()) {
+      toast.error("Vui lòng nhập mã và tên trình độ");
+      return;
+    }
+
+    try {
+      setAddingLevel(true);
+      const response = await lookupService.createEducationLevel({
+        code: newLevelCode.trim().toLowerCase().replace(/\s+/g, "_"),
+        name: newLevelName.trim(),
+        display_order: levels.length + 1,
+        color: newLevelColor,
+      });
+
+      if (response && response.data) {
+        await fetchEducationLevels();
+        setNewLevelName("");
+        setNewLevelCode("");
+        setNewLevelColor("#0d6efd");
+        setShowAddLevelModal(false);
+        toast.success("Đã thêm trình độ mới thành công!");
+      }
+    } catch (error) {
+      console.error("Error adding level:", error);
+      toast.error("Không thể thêm trình độ mới");
+    } finally {
+      setAddingLevel(false);
+    }
+  };
+
+  const handleDeleteLevel = async (levelCode) => {
+    const level = levels.find((l) => l.code === levelCode);
+    if (!level) return;
+
+    if (
+      !window.confirm(`Bạn có chắc chắn muốn xóa trình độ "${level.name}"?`)
+    ) {
+      return;
+    }
+
+    try {
+      const response = await lookupService.deleteEducationLevel(level.id);
+      if (response && response.success) {
+        await fetchEducationLevels();
+        // Reset level selection if deleted level was selected
+        if (formData.level === level.code) {
+          setFormData((prev) => ({ ...prev, level: "bachelor" }));
+        }
+        toast.success("Đã xóa trình độ thành công!");
+      }
+    } catch (error) {
+      console.error("Error deleting level:", error);
+      const errorMessage =
+        error?.response?.data?.message || "Không thể xóa trình độ";
+      toast.error(errorMessage);
+    }
+  };
 
   const fetchSisters = async () => {
     try {
@@ -277,7 +380,7 @@ const EducationFormPage = () => {
                       value={formData.sister_id}
                       onChange={handleChange}
                       required
-                      disabled={Boolean(sisterId)}
+                      disabled={Boolean(sisterId) || isEdit}
                       placeholder="Nhập tên để tìm..."
                       maxDisplayItems={5}
                       options={sisters.map((sister) => ({
@@ -291,17 +394,41 @@ const EducationFormPage = () => {
                   <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label>Trình độ *</Form.Label>
-                      <Form.Select
-                        name="level"
-                        value={formData.level}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="secondary">Trung học</option>
-                        <option value="bachelor">Đại học</option>
-                        <option value="master">Thạc sĩ</option>
-                        <option value="doctorate">Tiến sĩ</option>
-                      </Form.Select>
+                      <div className="d-flex align-items-center gap-2">
+                        <Form.Select
+                          name="level"
+                          value={formData.level}
+                          onChange={handleChange}
+                          required
+                          style={{ flex: 1 }}
+                        >
+                          {levels.map((level) => (
+                            <option key={level.code} value={level.code}>
+                              {level.name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <Button
+                          variant="outline-success"
+                          size="sm"
+                          onClick={() => setShowAddLevelModal(true)}
+                          title="Thêm trình độ mới"
+                          style={{ flexShrink: 0 }}
+                        >
+                          <i className="fas fa-plus"></i>
+                        </Button>
+                        {formData.level && (
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleDeleteLevel(formData.level)}
+                            title="Xóa trình độ đã chọn"
+                            style={{ flexShrink: 0 }}
+                          >
+                            <i className="fas fa-minus"></i>
+                          </Button>
+                        )}
+                      </div>
                     </Form.Group>
                   </Col>
                 </Row>
@@ -490,6 +617,132 @@ const EducationFormPage = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Add Level Modal */}
+      {showAddLevelModal && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="fas fa-plus-circle me-2"></i>
+                  Thêm trình độ mới
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowAddLevelModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Mã trình độ <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Ví dụ: postgraduate"
+                    value={newLevelCode}
+                    onChange={(e) => setNewLevelCode(e.target.value)}
+                  />
+                  <Form.Text className="text-muted">
+                    Mã sẽ được tự động chuyển sang chữ thường và thay khoảng
+                    trắng bằng dấu gạch dưới
+                  </Form.Text>
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Tên trình độ <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Ví dụ: Sau đại học"
+                    value={newLevelName}
+                    onChange={(e) => setNewLevelName(e.target.value)}
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    Màu trình độ <span className="text-danger">*</span>
+                  </Form.Label>
+                  <div className="d-flex flex-wrap gap-2">
+                    {levelColors.map((color) => (
+                      <div
+                        key={color.value}
+                        onClick={() => setNewLevelColor(color.value)}
+                        style={{
+                          width: "36px",
+                          height: "36px",
+                          backgroundColor: color.value,
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          border:
+                            newLevelColor === color.value
+                              ? "3px solid #000"
+                              : "2px solid #dee2e6",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        title={color.label}
+                      >
+                        {newLevelColor === color.value && (
+                          <i className="fas fa-check text-white"></i>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-2">
+                    <small className="text-muted">Xem trước: </small>
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: newLevelColor,
+                        color: "#fff",
+                        padding: "0.5rem 1rem",
+                        fontSize: "0.875rem",
+                      }}
+                    >
+                      {newLevelName || "Tên trình độ"}
+                    </span>
+                  </div>
+                </Form.Group>
+              </div>
+              <div className="modal-footer">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowAddLevelModal(false)}
+                  disabled={addingLevel}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={handleAddLevel}
+                  disabled={
+                    addingLevel || !newLevelName.trim() || !newLevelCode.trim()
+                  }
+                >
+                  {addingLevel ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Đang thêm...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-plus me-2"></i>
+                      Thêm trình độ
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Container>
   );
 };

@@ -97,4 +97,34 @@ router.delete(
   lookupController.deleteCommunityRole
 );
 
+// Education Levels routes
+router.get(
+  "/education-levels",
+  authenticateToken,
+  lookupController.getEducationLevels
+);
+router.get(
+  "/education-levels/all",
+  authenticateToken,
+  lookupController.getAllEducationLevels
+);
+router.post(
+  "/education-levels",
+  authenticateToken,
+  authorize("admin", "superior_general"),
+  lookupController.createEducationLevel
+);
+router.put(
+  "/education-levels/:id",
+  authenticateToken,
+  authorize("admin", "superior_general"),
+  lookupController.updateEducationLevel
+);
+router.delete(
+  "/education-levels/:id",
+  authenticateToken,
+  authorize("admin", "superior_general"),
+  lookupController.deleteEducationLevel
+);
+
 module.exports = router;

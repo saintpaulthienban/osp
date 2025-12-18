@@ -3,6 +3,7 @@ const JourneyStageModel = require("../models/JourneyStageModel");
 const SisterStatusModel = require("../models/SisterStatusModel");
 const VocationJourneyModel = require("../models/VocationJourneyModel");
 const CommunityRoleModel = require("../models/CommunityRoleModel");
+const EducationLevelModel = require("../models/EducationLevelModel");
 
 // ============ Journey Stages ============
 
@@ -378,6 +379,131 @@ const deleteCommunityRole = async (req, res) => {
   }
 };
 
+// ============ Education Levels ============
+
+const getEducationLevels = async (req, res) => {
+  try {
+    const levels = await EducationLevelModel.getActiveLevels();
+    return res.status(200).json({
+      success: true,
+      data: levels,
+    });
+  } catch (error) {
+    console.error("getEducationLevels error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch education levels" });
+  }
+};
+
+const getAllEducationLevels = async (req, res) => {
+  try {
+    const levels = await EducationLevelModel.getAll();
+    return res.status(200).json({
+      success: true,
+      data: levels,
+    });
+  } catch (error) {
+    console.error("getAllEducationLevels error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch education levels" });
+  }
+};
+
+const createEducationLevel = async (req, res) => {
+  try {
+    const { code, name, description, display_order, color } = req.body;
+
+    if (!code || !name) {
+      return res.status(400).json({ message: "Code and name are required" });
+    }
+
+    // Check if code already exists
+    const existing = await EducationLevelModel.findByCode(code);
+    if (existing) {
+      return res.status(400).json({ message: "Mã trình độ đã tồn tại" });
+    }
+
+    const level = await EducationLevelModel.create({
+      code,
+      name,
+      description,
+      display_order: display_order || 0,
+      color: color || "#6c757d",
+      is_active: true,
+    });
+
+    return res.status(201).json({
+      success: true,
+      data: level,
+    });
+  } catch (error) {
+    console.error("createEducationLevel error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Failed to create education level" });
+  }
+};
+
+const updateEducationLevel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await EducationLevelModel.findById(id);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Education level not found" });
+    }
+
+    const updated = await EducationLevelModel.update(id, req.body);
+    return res.status(200).json({
+      success: true,
+      data: updated,
+    });
+  } catch (error) {
+    console.error("updateEducationLevel error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Failed to update education level" });
+  }
+};
+
+const deleteEducationLevel = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const existing = await EducationLevelModel.findById(id);
+
+    if (!existing) {
+      return res.status(404).json({ message: "Education level not found" });
+    }
+
+    // Check if level is being used in education table
+    const usageCount = await EducationLevelModel.executeQuery(
+      "SELECT COUNT(*) as count FROM education WHERE level = ?",
+      [existing.code]
+    );
+
+    if (usageCount[0].count > 0) {
+      return res.status(400).json({
+        message: `Không thể xóa trình độ này vì đang được sử dụng bởi ${usageCount[0].count} hồ sơ học vấn`,
+        usageCount: usageCount[0].count,
+      });
+    }
+
+    // Hard delete if not used
+    await EducationLevelModel.delete(id);
+    return res.status(200).json({
+      success: true,
+      message: "Đã xóa trình độ thành công",
+    });
+  } catch (error) {
+    console.error("deleteEducationLevel error:", error.message);
+    return res
+      .status(500)
+      .json({ message: "Failed to delete education level" });
+  }
+};
+
 module.exports = {
   getJourneyStages,
   getAllJourneyStages,
@@ -395,4 +521,9 @@ module.exports = {
   createCommunityRole,
   updateCommunityRole,
   deleteCommunityRole,
+  getEducationLevels,
+  getAllEducationLevels,
+  createEducationLevel,
+  updateEducationLevel,
+  deleteEducationLevel,
 };

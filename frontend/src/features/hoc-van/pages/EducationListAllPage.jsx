@@ -15,13 +15,14 @@ import {
 import { Link } from "react-router-dom";
 import { FaGraduationCap, FaEye, FaEdit, FaTrash } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { educationService } from "@services";
+import { educationService, lookupService } from "@services";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
 
 const EducationListAllPage = () => {
   const [loading, setLoading] = useState(true);
   const [educations, setEducations] = useState([]);
+  const [levels, setLevels] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,6 +33,21 @@ const EducationListAllPage = () => {
   });
   const [sortBy, setSortBy] = useState("sister_name");
   const [sortOrder, setSortOrder] = useState("asc");
+
+  // Fetch education levels on mount
+  useEffect(() => {
+    const fetchLevels = async () => {
+      try {
+        const response = await lookupService.getEducationLevels();
+        if (response && response.data) {
+          setLevels(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching education levels:", error);
+      }
+    };
+    fetchLevels();
+  }, []);
 
   // Debounce search - chờ 500ms sau khi ngừng gõ
   useEffect(() => {
@@ -101,19 +117,21 @@ const EducationListAllPage = () => {
     }
   };
 
-  const getLevelBadge = (level) => {
-    const levels = {
-      high_school: { label: "THPT", variant: "secondary" },
-      vocational: { label: "Trung cấp", variant: "secondary" },
-      associate: { label: "Cao đẳng", variant: "info" },
-      bachelor: { label: "Cử nhân", variant: "primary" },
-      master: { label: "Thạc sĩ", variant: "success" },
-      doctorate: { label: "Tiến sĩ", variant: "danger" },
-      certificate: { label: "Chứng chỉ", variant: "warning" },
-      other: { label: "Khác", variant: "dark" },
-    };
-    const levelInfo = levels[level] || { label: level, variant: "secondary" };
-    return <Badge bg={levelInfo.variant}>{levelInfo.label}</Badge>;
+  const getLevelBadge = (levelCode) => {
+    const levelItem = levels.find((l) => l.code === levelCode);
+    if (levelItem) {
+      return (
+        <Badge
+          style={{
+            backgroundColor: levelItem.color || "#6c757d",
+            color: "#fff",
+          }}
+        >
+          {levelItem.name}
+        </Badge>
+      );
+    }
+    return <Badge bg="secondary">{levelCode || "Khác"}</Badge>;
   };
 
   const getStatusBadge = (status) => {
@@ -294,14 +312,11 @@ const EducationListAllPage = () => {
                   size="lg"
                 >
                   <option value="">Tất cả</option>
-                  <option value="high_school">THPT</option>
-                  <option value="vocational">Trung cấp</option>
-                  <option value="associate">Cao đẳng</option>
-                  <option value="bachelor">Cử nhân</option>
-                  <option value="master">Thạc sĩ</option>
-                  <option value="doctorate">Tiến sĩ</option>
-                  <option value="certificate">Chứng chỉ</option>
-                  <option value="other">Khác</option>
+                  {levels.map((level) => (
+                    <option key={level.code} value={level.code}>
+                      {level.name}
+                    </option>
+                  ))}
                 </Form.Select>
               </Form.Group>
             </Col>
