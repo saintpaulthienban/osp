@@ -535,7 +535,9 @@ const CommunityTimelinePage = () => {
                       </label>
                       <p className="mb-0">
                         <a
-                          href={resolveMediaUrl(selectedAssignment.decision_file_url)}
+                          href={resolveMediaUrl(
+                            selectedAssignment.decision_file_url
+                          )}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-outline-primary btn-sm"

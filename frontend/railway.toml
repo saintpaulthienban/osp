@@ -1,5 +1,0 @@
-[build]
-builder = "nixpacks"
-
-[build.env]
-VITE_API_URL = "https://osp-backend-production.up.railway.app/api"

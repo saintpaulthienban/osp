@@ -115,10 +115,12 @@ api.interceptors.response.use(
     } else if (error.request) {
       // Network error - try fallback to localhost if currently using Railway
       if (api.defaults.baseURL === RAILWAY_API) {
-        console.warn("⚠️ Railway backend unreachable, switching to localhost...");
+        console.warn(
+          "⚠️ Railway backend unreachable, switching to localhost..."
+        );
         api.defaults.baseURL = LOCALHOST_API;
         toast.info("Chuyển sang server local...");
-        
+
         // Retry the request with localhost
         return api.request(error.config);
       } else {
