@@ -7,25 +7,24 @@ const db = require("../config/database");
 const getNotifications = async (req, res) => {
   try {
     const userId = req.user.id;
-    let { limit, unreadOnly = false } = req.query;
+    
+    // 1. Lấy dữ liệu thô từ query (đang là String hoặc undefined)
+    const { limit } = req.query;
 
-    // ✅ Ép kiểu limit sang integer, mặc định là 20
-    limit = parseInt(limit) || 20;
+    // 2. ÉP KIỂU SANG SỐ NGUYÊN (QUAN TRỌNG NHẤT)
+    // Nếu không có limit hoặc ép kiểu lỗi, mặc định lấy 10
+    const limitNumber = Number(limit) || 10;
 
-    let query = `
-      SELECT * FROM notifications 
-      WHERE user_id = ?
-    `;
-    const params = [userId];
+    // Log ra để kiểm tra (trên server log số sẽ có màu vàng/xanh, chuỗi màu trắng)
+    console.log(`[Debug] UserID: ${userId}, Limit (Number): ${limitNumber}, Type: ${typeof limitNumber}`);
 
-    if (unreadOnly === "true") {
-      query += " AND is_read = 0";
-    }
-
-    query += " ORDER BY created_at DESC LIMIT ?";
-    params.push(limit);
-
-    const [rows] = await db.execute(query, params);
+    // 3. Thực thi Query với limitNumber (đã ép kiểu)
+    const [notifications] = await db.execute(
+      `SELECT * FROM notifications 
+       WHERE user_id = ? 
+       ORDER BY created_at DESC LIMIT ?`,
+      [userId, limitNumber] // <--- Bắt buộc phải dùng biến limitNumber (đã ép kiểu)
+    );
 
     // Get unread count
     const [countResult] = await db.execute(
@@ -35,7 +34,7 @@ const getNotifications = async (req, res) => {
 
     res.json({
       success: true,
-      data: rows,
+      data: notifications,
       unreadCount: countResult[0].count,
     });
   } catch (error) {
