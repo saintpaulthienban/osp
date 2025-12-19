@@ -7,7 +7,10 @@ const db = require("../config/database");
 const getNotifications = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { limit = 20, unreadOnly = false } = req.query;
+    let { limit, unreadOnly = false } = req.query;
+
+    // ✅ Ép kiểu limit sang integer, mặc định là 20
+    limit = parseInt(limit) || 20;
 
     let query = `
       SELECT * FROM notifications 
@@ -20,7 +23,7 @@ const getNotifications = async (req, res) => {
     }
 
     query += " ORDER BY created_at DESC LIMIT ?";
-    params.push(parseInt(limit));
+    params.push(limit);
 
     const [rows] = await db.execute(query, params);
 
