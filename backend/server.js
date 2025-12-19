@@ -12,6 +12,10 @@ const db = require("./src/config/database");
 
 const app = express();
 
+// ✅ Tin tưởng proxy khi chạy trên Railway/Heroku/Cloud
+// Bắt buộc phải có để express-rate-limit hoạt động đúng với X-Forwarded-For header
+app.set("trust proxy", 1);
+
 // Security middlewares (helmet, CORS, sanitizers, rate limiters)
 applySecurityMiddlewares(app);
 
