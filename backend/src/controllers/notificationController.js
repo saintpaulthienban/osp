@@ -7,7 +7,7 @@ const db = require("../config/database");
 const getNotifications = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     // 1. Lấy dữ liệu thô từ query (đang là String hoặc undefined)
     const { limit } = req.query;
 
@@ -16,7 +16,9 @@ const getNotifications = async (req, res) => {
     const limitNumber = Number(limit) || 10;
 
     // Log ra để kiểm tra (trên server log số sẽ có màu vàng/xanh, chuỗi màu trắng)
-    console.log(`[Debug] UserID: ${userId}, Limit (Number): ${limitNumber}, Type: ${typeof limitNumber}`);
+    console.log(
+      `[Debug] UserID: ${userId}, Limit (Number): ${limitNumber}, Type: ${typeof limitNumber}`
+    );
 
     // 3. Thực thi Query với limitNumber (đã ép kiểu)
     const [notifications] = await db.execute(
