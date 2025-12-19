@@ -20,16 +20,17 @@ const getNotifications = async (req, res) => {
       `[Debug] UserID: ${userId}, Limit (Number): ${limitNumber}, Type: ${typeof limitNumber}`
     );
 
-    // 3. Thực thi Query với limitNumber (đã ép kiểu)
-    const [notifications] = await db.execute(
+    // 3. Thực thi Query với db.query() thay vì db.execute()
+    // query() dùng client-side text protocol, xử lý LIMIT ? tốt hơn
+    const [notifications] = await db.query(
       `SELECT * FROM notifications 
        WHERE user_id = ? 
        ORDER BY created_at DESC LIMIT ?`,
-      [userId, limitNumber] // <--- Bắt buộc phải dùng biến limitNumber (đã ép kiểu)
+      [userId, limitNumber]
     );
 
     // Get unread count
-    const [countResult] = await db.execute(
+    const [countResult] = await db.query(
       "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
       [userId]
     );
