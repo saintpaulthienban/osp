@@ -66,7 +66,10 @@ async function initCommunityRolesTable() {
       );
     }
   } catch (error) {
-    console.error("[Migration] Error initializing community_roles:", error.message);
+    console.error(
+      "[Migration] Error initializing community_roles:",
+      error.message
+    );
   } finally {
     connection.release();
   }
