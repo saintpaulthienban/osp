@@ -9,6 +9,7 @@ const registerRoutes = require("./src/routes");
 const { notFound, errorHandler } = require("./src/middlewares/errorHandler");
 const { applySecurityMiddlewares } = require("./src/middlewares/security");
 const db = require("./src/config/database");
+const { initDatabase } = require("./src/config/initDatabase");
 
 const app = express();
 
@@ -58,6 +59,9 @@ const startServer = async () => {
     const connection = await db.getConnection();
     connection.release();
     console.log("Database connection verified successfully.");
+
+    // Run database migrations/initialization
+    await initDatabase();
 
     // Get PORT right before starting server to ensure env vars are ready
     const PORT = process.env.PORT || 8080;
