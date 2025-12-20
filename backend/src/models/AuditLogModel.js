@@ -8,6 +8,7 @@ class AuditLogModel extends BaseModel {
       "action",
       "table_name",
       "record_id",
+      "description",
       "old_value",
       "new_value",
       "ip_address",

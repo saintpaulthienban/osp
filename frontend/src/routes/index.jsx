@@ -98,7 +98,7 @@ import {
 } from "@features/users";
 
 // Settings
-import { BackupSettingsPage, AuditLogPage } from "@features/settings";
+import { BackupSettingsPage } from "@features/settings";
 
 // Error Pages
 import { ForbiddenPage, ServerErrorPage } from "@pages/errors";
@@ -290,8 +290,6 @@ const AppRoutes = () => {
 
           {/* Settings */}
           <Route path="/settings/backup" element={<BackupSettingsPage />} />
-          <Route path="/settings/audit-log" element={<AuditLogPage />} />
-          <Route path="/settings/audit-logs" element={<AuditLogPage />} />
 
           {/* Redirect */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

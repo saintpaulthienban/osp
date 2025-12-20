@@ -6,7 +6,7 @@ export const menuConfig = [
     label: "Dashboard",
     icon: "fas fa-home",
     path: "/dashboard",
-    roles: [], // Empty = all roles can access
+    roles: ["admin", "superior_general"], // Only admin and superior_general can access
   },
   {
     id: "thong-tin",
@@ -301,12 +301,6 @@ export const menuConfig = [
         label: "Sao lưu & Khôi phục",
         icon: "fas fa-database",
         path: "/settings/backup",
-      },
-      {
-        id: "settings-audit-log",
-        label: "Nhật ký hệ thống",
-        icon: "fas fa-history",
-        path: "/settings/audit-log",
       },
     ],
   },
