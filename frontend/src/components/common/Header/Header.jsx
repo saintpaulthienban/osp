@@ -167,22 +167,6 @@ const Header = ({ toggleSidebar }) => {
 
       {/* Header Main Menu */}
       <div className="header-main-menu d-none d-lg-flex">
-        {/* Search Bar */}
-        <div className="header-search-bar">
-          <div className="stylish-input-group">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Tìm kiếm..."
-            />
-            <span className="input-group-addon">
-              <button type="button">
-                <i className="fas fa-search"></i>
-              </button>
-            </span>
-          </div>
-        </div>
-
         {/* Right Nav Items */}
         <ul className="navbar-nav">
           {/* Messages - Hover dropdown */}
@@ -292,18 +276,8 @@ const Header = ({ toggleSidebar }) => {
                     </Link>
                   </li>
                   <li>
-                    <Link to="/settings">
-                      <i className="fas fa-cog"></i>Cài đặt tài khoản
-                    </Link>
-                  </li>
-                  <li>
                     <Link to="/profile#password">
                       <i className="fas fa-key"></i>Đổi mật khẩu
-                    </Link>
-                  </li>
-                  <li>
-                    <Link to="/help">
-                      <i className="fas fa-question-circle"></i>Trợ giúp
                     </Link>
                   </li>
                   <li>

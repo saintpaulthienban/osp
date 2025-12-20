@@ -297,30 +297,6 @@ export const menuConfig = [
     roles: ["admin", "superior_general"],
     children: [
       {
-        id: "settings-index",
-        label: "Tổng quan cài đặt",
-        icon: "fas fa-th-large",
-        path: "/settings",
-      },
-      {
-        id: "settings-general",
-        label: "Cài đặt chung",
-        icon: "fas fa-sliders-h",
-        path: "/settings/general",
-      },
-      {
-        id: "settings-system",
-        label: "Cài đặt hệ thống",
-        icon: "fas fa-server",
-        path: "/settings/system",
-      },
-      {
-        id: "settings-preferences",
-        label: "Tùy chọn cá nhân",
-        icon: "fas fa-user-cog",
-        path: "/settings/preferences",
-      },
-      {
         id: "settings-backup",
         label: "Sao lưu & Khôi phục",
         icon: "fas fa-database",
@@ -333,16 +309,5 @@ export const menuConfig = [
         path: "/settings/audit-log",
       },
     ],
-  },
-  {
-    id: "divider-2",
-    type: "divider",
-  },
-  {
-    id: "help",
-    label: "Trợ giúp",
-    icon: "fas fa-question-circle",
-    path: "/help",
-    roles: [],
   },
 ];

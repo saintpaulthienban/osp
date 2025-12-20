@@ -18,7 +18,6 @@ import { FaHistory, FaFilter, FaUser, FaClock, FaSync } from "react-icons/fa";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { auditLogService } from "@services";
-import "./settings-common.css";
 
 const AuditLogPage = () => {
   const [logs, setLogs] = useState([]);

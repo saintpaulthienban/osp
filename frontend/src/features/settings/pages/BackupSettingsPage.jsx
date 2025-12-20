@@ -26,7 +26,7 @@ import {
 } from "react-icons/fa";
 import { settingService } from "@services";
 import { formatDate, formatFileSize } from "@utils/formatters";
-import "./settings-common.css";
+
 
 const BackupSettingsPage = () => {
   const [loading, setLoading] = useState(true);

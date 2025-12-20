@@ -99,10 +99,6 @@ import {
 
 // Settings
 import {
-  SettingsIndexPage,
-  GeneralSettingsPage,
-  SystemSettingsPage,
-  PreferencesPage,
   BackupSettingsPage,
   AuditLogPage,
 } from "@features/settings";
@@ -296,10 +292,6 @@ const AppRoutes = () => {
           <Route path="/profile" element={<ProfilePage />} />
 
           {/* Settings */}
-          <Route path="/settings" element={<SettingsIndexPage />} />
-          <Route path="/settings/general" element={<GeneralSettingsPage />} />
-          <Route path="/settings/system" element={<SystemSettingsPage />} />
-          <Route path="/settings/preferences" element={<PreferencesPage />} />
           <Route path="/settings/backup" element={<BackupSettingsPage />} />
           <Route path="/settings/audit-log" element={<AuditLogPage />} />
           <Route path="/settings/audit-logs" element={<AuditLogPage />} />
