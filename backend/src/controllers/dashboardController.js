@@ -4,6 +4,7 @@ const SisterModel = require("../models/SisterModel");
 const CommunityModel = require("../models/CommunityModel");
 const PostModel = require("../models/PostModel");
 const AuditLogModel = require("../models/AuditLogModel");
+const auditLogFormatter = require("../services/auditLogFormatter");
 
 /**
  * Get dashboard overview statistics
@@ -91,7 +92,7 @@ const getDashboardStats = async (req, res) => {
  */
 const getRecentActivities = async (req, res) => {
   try {
-    const { limit = 10 } = req.query;
+    const { limit = 10, useAI = false } = req.query;
 
     const activities = await AuditLogModel.executeQuery(
       `SELECT 
@@ -99,6 +100,9 @@ const getRecentActivities = async (req, res) => {
         al.action,
         al.table_name,
         al.record_id,
+        al.old_value,
+        al.new_value,
+        al.ip_address,
         al.created_at,
         u.full_name as user_name,
         u.email as user_email
@@ -109,65 +113,11 @@ const getRecentActivities = async (req, res) => {
       [parseInt(limit)]
     );
 
-    // Format activities
-    const formattedActivities = activities.map((activity) => {
-      let type = "info";
-      let icon = "fas fa-info-circle";
-      let message = activity.action;
-
-      // Determine type and icon based on action
-      if (
-        activity.action.toLowerCase().includes("create") ||
-        activity.action.toLowerCase().includes("thêm")
-      ) {
-        type = "success";
-        icon = "fas fa-plus-circle";
-      } else if (
-        activity.action.toLowerCase().includes("update") ||
-        activity.action.toLowerCase().includes("cập nhật")
-      ) {
-        type = "primary";
-        icon = "fas fa-edit";
-      } else if (
-        activity.action.toLowerCase().includes("delete") ||
-        activity.action.toLowerCase().includes("xóa")
-      ) {
-        type = "danger";
-        icon = "fas fa-trash";
-      } else if (
-        activity.action.toLowerCase().includes("login") ||
-        activity.action.toLowerCase().includes("đăng nhập")
-      ) {
-        type = "info";
-        icon = "fas fa-sign-in-alt";
-      }
-
-      // Generate readable message
-      const tableNames = {
-        sisters: "nữ tu",
-        communities: "cộng đoàn",
-        users: "người dùng",
-        posts: "bài đăng",
-        vocation_journey: "hành trình ơn gọi",
-        health_records: "hồ sơ sức khỏe",
-        missions: "sứ vụ",
-        education: "học vấn",
-        evaluations: "đánh giá",
-      };
-
-      const tableName = tableNames[activity.table_name] || activity.table_name;
-
-      return {
-        id: activity.id,
-        type,
-        icon,
-        message: `${activity.action} (${tableName})`,
-        user: activity.user_name || "Hệ thống",
-        timestamp: activity.created_at,
-        tableType: activity.table_name,
-        recordId: activity.record_id,
-      };
-    });
+    // Format activities using auditLogFormatter
+    const formattedActivities = await auditLogFormatter.formatActivities(
+      activities,
+      useAI === "true" || useAI === true
+    );
 
     return res.status(200).json({
       success: true,
@@ -178,6 +128,58 @@ const getRecentActivities = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Lỗi khi tải hoạt động gần đây",
+    });
+  }
+};
+
+/**
+ * Get single activity detail with AI description
+ */
+const getActivityDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { useAI = true } = req.query;
+
+    const [activity] = await AuditLogModel.executeQuery(
+      `SELECT 
+        al.id,
+        al.action,
+        al.table_name,
+        al.record_id,
+        al.old_value,
+        al.new_value,
+        al.ip_address,
+        al.created_at,
+        u.full_name as user_name,
+        u.email as user_email
+       FROM audit_logs al
+       LEFT JOIN users u ON u.id = al.user_id
+       WHERE al.id = ?`,
+      [id]
+    );
+
+    if (!activity) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy hoạt động",
+      });
+    }
+
+    // Format activity with AI (if requested)
+    const formatted = await auditLogFormatter.formatActivity(
+      activity,
+      useAI === "true" || useAI === true
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: formatted,
+    });
+  } catch (error) {
+    console.error("getActivityDetail error:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Lỗi khi tải chi tiết hoạt động",
     });
   }
 };
@@ -275,6 +277,7 @@ const getQuickStats = async (req, res) => {
 module.exports = {
   getDashboardStats,
   getRecentActivities,
+  getActivityDetail,
   getRecentPosts,
   getQuickStats,
 };

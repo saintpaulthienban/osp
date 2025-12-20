@@ -27,7 +27,6 @@ import {
 import { settingService } from "@services";
 import { formatDate, formatFileSize } from "@utils/formatters";
 
-
 const BackupSettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);

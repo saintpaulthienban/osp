@@ -14,6 +14,9 @@ router.get("/stats", dashboardController.getDashboardStats);
 // GET /api/dashboard/activities - Get recent activities
 router.get("/activities", dashboardController.getRecentActivities);
 
+// GET /api/dashboard/activities/:id - Get activity detail
+router.get("/activities/:id", dashboardController.getActivityDetail);
+
 // GET /api/dashboard/posts - Get recent posts
 router.get("/posts", dashboardController.getRecentPosts);
 

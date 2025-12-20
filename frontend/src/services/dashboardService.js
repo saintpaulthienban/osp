@@ -22,16 +22,34 @@ const dashboardService = {
   /**
    * Get recent activities
    */
-  getRecentActivities: async (limit = 10) => {
+  getRecentActivities: async (limit = 10, useAI = false) => {
     try {
       const response = await api.get("/dashboard/activities", {
-        params: { limit },
+        params: { limit, useAI },
       });
       return response;
     } catch (error) {
       return {
         success: false,
         error: error.response?.data?.message || "Lỗi khi tải hoạt động gần đây",
+      };
+    }
+  },
+
+  /**
+   * Get activity detail (with AI description if available)
+   */
+  getActivityDetail: async (id, useAI = true) => {
+    try {
+      const response = await api.get(`/dashboard/activities/${id}`, {
+        params: { useAI },
+      });
+      return response;
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error.response?.data?.message || "Lỗi khi tải chi tiết hoạt động",
       };
     }
   },

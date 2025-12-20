@@ -98,10 +98,7 @@ import {
 } from "@features/users";
 
 // Settings
-import {
-  BackupSettingsPage,
-  AuditLogPage,
-} from "@features/settings";
+import { BackupSettingsPage, AuditLogPage } from "@features/settings";
 
 // Error Pages
 import { ForbiddenPage, ServerErrorPage } from "@pages/errors";
