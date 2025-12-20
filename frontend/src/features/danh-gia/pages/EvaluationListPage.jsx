@@ -9,9 +9,9 @@ import {
   Card,
   Table,
   Badge,
-  Pagination,
   Form,
 } from "react-bootstrap";
+import Pagination from "@components/common/Pagination";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { evaluationService } from "@services";
@@ -29,7 +29,7 @@ const EvaluationListPage = () => {
   const [evaluations, setEvaluations] = useState([]);
 
   const table = useTable({
-    initialPageSize: 12,
+    initialPageSize: 10,
   });
 
   const debouncedSearch = useDebounce(table.searchTerm, 500);
@@ -451,29 +451,12 @@ const EvaluationListPage = () => {
           )}
         </Card.Body>
         {table.totalPages > 1 && (
-          <Card.Footer className="bg-white d-flex justify-content-between align-items-center">
-            <small className="text-muted">
-              Trang {table.currentPage} / {table.totalPages}
-            </small>
-            <Pagination className="mb-0">
-              <Pagination.First
-                onClick={() => table.firstPage()}
-                disabled={table.currentPage === 1}
-              />
-              <Pagination.Prev
-                onClick={() => table.previousPage()}
-                disabled={table.currentPage === 1}
-              />
-              <Pagination.Item active>{table.currentPage}</Pagination.Item>
-              <Pagination.Next
-                onClick={() => table.nextPage()}
-                disabled={table.currentPage === table.totalPages}
-              />
-              <Pagination.Last
-                onClick={() => table.lastPage()}
-                disabled={table.currentPage === table.totalPages}
-              />
-            </Pagination>
+          <Card.Footer className="bg-white">
+            <Pagination
+              currentPage={table.currentPage}
+              totalPages={table.totalPages}
+              onPageChange={table.goToPage}
+            />
           </Card.Footer>
         )}
       </Card>

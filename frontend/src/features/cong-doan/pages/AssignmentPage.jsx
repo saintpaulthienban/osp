@@ -111,6 +111,8 @@ const AssignmentPage = () => {
   const [assignments, setAssignments] = useState([]);
   const [allAssignmentsData, setAllAssignmentsData] = useState([]); // Store unfiltered data
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
 
   // Roles management
   const [roles, setRoles] = useState(defaultRoles);
@@ -203,6 +205,7 @@ const AssignmentPage = () => {
     }
 
     setAssignments(filtered);
+    setCurrentPage(1); // Reset to page 1 when filters change
   }, [filters.community_id, filters.role, filters.status, allAssignmentsData]);
 
   const fetchInitialData = async () => {
@@ -391,6 +394,7 @@ const AssignmentPage = () => {
   const resetFilters = () => {
     setFilters({ community_id: "", role: "", status: "" });
     setSearchTerm("");
+    setCurrentPage(1);
   };
 
   const handleOpenAddModal = () => {
@@ -571,7 +575,15 @@ const AssignmentPage = () => {
     });
   };
 
-  // Role badge color - get from roles state or default colors
+  const filteredAssignments = getFilteredAssignments();
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredAssignments.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedAssignments = filteredAssignments.slice(startIndex, endIndex);
+
+  // DataTable columns
   const getRoleBadgeColor = (roleCode) => {
     // First try to find from roles state
     const role = roles.find((r) => r.code === roleCode);
@@ -604,6 +616,14 @@ const AssignmentPage = () => {
 
   // DataTable columns
   const columns = [
+    {
+      key: "index",
+      label: "#",
+      align: "center",
+      render: (row, index) => (
+        <div className="text-center">{startIndex + index + 1}</div>
+      ),
+    },
     {
       key: "sister_name",
       label: "Nữ Tu",
@@ -735,7 +755,9 @@ const AssignmentPage = () => {
     );
   }
 
-  const filteredAssignments = getFilteredAssignments();
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   return (
     <Container fluid className="py-4">
@@ -879,10 +901,14 @@ const AssignmentPage = () => {
         <Card.Body className="p-0">
           <DataTable
             columns={columns}
-            data={filteredAssignments}
+            data={paginatedAssignments}
             loading={loading}
             emptyText="Không có dữ liệu bổ nhiệm"
             emptyIcon="fas fa-users-slash"
+            pagination={filteredAssignments.length > pageSize}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
           />
         </Card.Body>
       </Card>

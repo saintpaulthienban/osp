@@ -26,7 +26,7 @@ const VocationJourneyListPage = () => {
   const [stages, setStages] = useState([]);
 
   const table = useTable({
-    initialPageSize: 20,
+    initialPageSize: 10,
   });
 
   const debouncedSearch = useDebounce(table.searchTerm, 500);

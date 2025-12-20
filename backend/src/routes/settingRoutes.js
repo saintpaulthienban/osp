@@ -1,9 +1,29 @@
 // src/routes/settingRoutes.js
 const express = require("express");
+const multer = require("multer");
 const settingController = require("../controllers/settingController");
 const { authenticateToken, authorize } = require("../middlewares/auth");
 
 const router = express.Router();
+
+// Configure multer for file upload (memory storage)
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max file size
+  },
+  fileFilter: (req, file, cb) => {
+    if (
+      file.mimetype === "application/sql" ||
+      file.mimetype === "text/plain" ||
+      file.originalname.endsWith(".sql")
+    ) {
+      cb(null, true);
+    } else {
+      cb(new Error("Chỉ chấp nhận file SQL (.sql)"), false);
+    }
+  },
+});
 
 // All routes require authentication
 router.use(authenticateToken);
@@ -59,6 +79,12 @@ router.post(
   "/backups",
   authorize("admin", "superior_general"),
   settingController.createBackup
+);
+router.post(
+  "/backups/restore-file",
+  authorize("admin", "superior_general"),
+  upload.single("backup"),
+  settingController.restoreFromFile
 );
 router.post(
   "/backups/:id/restore",

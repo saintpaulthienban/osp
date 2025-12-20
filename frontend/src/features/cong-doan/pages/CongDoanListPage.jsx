@@ -307,7 +307,7 @@ const CongDoanListPage = () => {
               <Table hover className="mb-0 align-middle">
                 <thead className="bg-light">
                   <tr>
-                    <th className="text-nowrap">STT</th>
+                    <th className="text-nowrap">#</th>
                     <th
                       role="button"
                       onClick={() => handleSort("code")}
@@ -427,13 +427,11 @@ const CongDoanListPage = () => {
         </Card.Body>
 
         {totalPages > 1 && (
-          <Card.Footer className="bg-white">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </Card.Footer>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         )}
       </Card>
     </Container>

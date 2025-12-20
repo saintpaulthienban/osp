@@ -303,6 +303,38 @@ const settingService = {
   },
 
   /**
+   * Restore database from uploaded SQL file
+   * @param {File} file - SQL file to restore
+   * @returns {Promise}
+   */
+  restoreFromFile: async (file) => {
+    try {
+      const formData = new FormData();
+      formData.append("backup", file);
+
+      const response = await api.post(
+        "/settings/backups/restore-file",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return {
+        success: response.data?.success || true,
+        message: response.data?.message,
+        data: response.data?.data || response.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.response?.data?.message || "Lỗi khi khôi phục từ file SQL",
+      };
+    }
+  },
+
+  /**
    * Get all settings
    * @returns {Promise}
    */

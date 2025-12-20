@@ -24,40 +24,15 @@ const Pagination = ({
 
   const getPageNumbers = () => {
     const pages = [];
-    const halfVisible = Math.floor(maxVisible / 2);
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
 
-    let startPage = Math.max(1, currentPage - halfVisible);
-    let endPage = Math.min(totalPages, currentPage + halfVisible);
-
-    // Adjust if at the beginning
-    if (currentPage <= halfVisible) {
-      endPage = Math.min(totalPages, maxVisible);
+    if (endPage - startPage + 1 < maxVisible) {
+      startPage = Math.max(1, endPage - maxVisible + 1);
     }
 
-    // Adjust if at the end
-    if (currentPage + halfVisible >= totalPages) {
-      startPage = Math.max(1, totalPages - maxVisible + 1);
-    }
-
-    // Add first page and ellipsis
-    if (startPage > 1) {
-      pages.push(1);
-      if (startPage > 2) {
-        pages.push("ellipsis-start");
-      }
-    }
-
-    // Add page numbers
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
-    }
-
-    // Add last page and ellipsis
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        pages.push("ellipsis-end");
-      }
-      pages.push(totalPages);
     }
 
     return pages;
@@ -66,7 +41,12 @@ const Pagination = ({
   const pages = getPageNumbers();
 
   return (
-    <div className={`app-pagination ${className}`}>
+    <div
+      className={`d-flex justify-content-between align-items-center py-3 px-3 ${className}`}
+    >
+      <small className="text-muted">
+        Trang {currentPage} / {totalPages}
+      </small>
       <BootstrapPagination size={size} className="mb-0">
         {/* First Page */}
         {showFirstLast && (
@@ -85,21 +65,15 @@ const Pagination = ({
         )}
 
         {/* Page Numbers */}
-        {pages.map((page, index) => {
-          if (typeof page === "string" && page.startsWith("ellipsis")) {
-            return <BootstrapPagination.Ellipsis key={page} disabled />;
-          }
-
-          return (
-            <BootstrapPagination.Item
-              key={index}
-              active={page === currentPage}
-              onClick={() => handlePageChange(page)}
-            >
-              {page}
-            </BootstrapPagination.Item>
-          );
-        })}
+        {pages.map((page, index) => (
+          <BootstrapPagination.Item
+            key={index}
+            active={page === currentPage}
+            onClick={() => handlePageChange(page)}
+          >
+            {page}
+          </BootstrapPagination.Item>
+        ))}
 
         {/* Next Page */}
         {showPrevNext && (
@@ -117,11 +91,7 @@ const Pagination = ({
           />
         )}
       </BootstrapPagination>
-
-      {/* Page Info */}
-      <div className="pagination-info">
-        Trang <strong>{currentPage}</strong> / <strong>{totalPages}</strong>
-      </div>
+      <div style={{ width: "100px" }}></div>
     </div>
   );
 };

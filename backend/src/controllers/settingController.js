@@ -421,6 +421,117 @@ const deleteBackup = async (req, res) => {
 };
 
 /**
+ * Restore from uploaded SQL file
+ */
+const restoreFromFile = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Vui lòng upload file SQL",
+      });
+    }
+
+    const sqlContent = req.file.buffer.toString("utf-8");
+
+    // Validate SQL content
+    if (!sqlContent.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "File SQL trống",
+      });
+    }
+
+    // Split SQL statements by semicolon (basic split)
+    // This handles most common SQL dump formats
+    const statements = sqlContent
+      .split(/;\s*$/gm)
+      .map((s) => s.trim())
+      .filter(
+        (s) => s.length > 0 && !s.startsWith("--") && !s.startsWith("/*")
+      );
+
+    if (statements.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Không tìm thấy câu lệnh SQL hợp lệ trong file",
+      });
+    }
+
+    // Get a connection for transaction
+    const connection = await db.getConnection();
+
+    try {
+      // Disable foreign key checks during restore
+      await connection.query("SET FOREIGN_KEY_CHECKS = 0");
+
+      let successCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const statement of statements) {
+        try {
+          if (statement.trim()) {
+            await connection.query(statement);
+            successCount++;
+          }
+        } catch (stmtError) {
+          errorCount++;
+          // Log but continue with other statements
+          console.error("SQL statement error:", stmtError.message);
+          errors.push(stmtError.message);
+          // Stop on critical errors
+          if (stmtError.code === "ER_PARSE_ERROR") {
+            throw new Error(`Lỗi cú pháp SQL: ${stmtError.message}`);
+          }
+        }
+      }
+
+      // Re-enable foreign key checks
+      await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+
+      // Log the restore action
+      const userId = req.user?.id;
+      if (userId) {
+        await connection.query(
+          `INSERT INTO audit_logs (user_id, action, table_name, description)
+           VALUES (?, 'restore', 'database', ?)`,
+          [
+            userId,
+            `Khôi phục database từ file ${req.file.originalname}. Thành công: ${successCount}, Lỗi: ${errorCount}`,
+          ]
+        );
+      }
+
+      connection.release();
+
+      res.json({
+        success: true,
+        message: `Đã khôi phục dữ liệu thành công! Thực thi ${successCount} câu lệnh${
+          errorCount > 0 ? `, ${errorCount} lỗi` : ""
+        }`,
+        data: {
+          executed: successCount,
+          errors: errorCount,
+          errorMessages: errors.slice(0, 5), // Return first 5 errors
+        },
+      });
+    } catch (txError) {
+      // Re-enable foreign key checks even on error
+      await connection.query("SET FOREIGN_KEY_CHECKS = 1");
+      connection.release();
+      throw txError;
+    }
+  } catch (error) {
+    console.error("restoreFromFile error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Lỗi khi khôi phục dữ liệu từ file SQL",
+    });
+  }
+};
+
+/**
  * Get storage info
  */
 const getStorageInfo = async (req, res) => {
@@ -496,6 +607,7 @@ module.exports = {
   getBackups,
   createBackup,
   restoreBackup,
+  restoreFromFile,
   downloadBackup,
   deleteBackup,
   getStorageInfo,

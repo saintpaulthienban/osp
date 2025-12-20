@@ -496,7 +496,7 @@ const EducationListAllPage = () => {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex justify-content-between align-items-center py-3 px-3">
                   <small className="text-muted">
                     Trang {currentPage} / {totalPages}
                   </small>
@@ -509,18 +509,35 @@ const EducationListAllPage = () => {
                       onClick={() => setCurrentPage((p) => p - 1)}
                       disabled={currentPage === 1}
                     />
-                    {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                      const page = i + 1;
-                      return (
-                        <Pagination.Item
-                          key={page}
-                          active={page === currentPage}
-                          onClick={() => setCurrentPage(page)}
-                        >
-                          {page}
-                        </Pagination.Item>
+                    {(() => {
+                      const pages = [];
+                      const maxVisible = 5;
+                      let startPage = Math.max(
+                        1,
+                        currentPage - Math.floor(maxVisible / 2)
                       );
-                    })}
+                      let endPage = Math.min(
+                        totalPages,
+                        startPage + maxVisible - 1
+                      );
+
+                      if (endPage - startPage + 1 < maxVisible) {
+                        startPage = Math.max(1, endPage - maxVisible + 1);
+                      }
+
+                      for (let i = startPage; i <= endPage; i++) {
+                        pages.push(
+                          <Pagination.Item
+                            key={i}
+                            active={i === currentPage}
+                            onClick={() => setCurrentPage(i)}
+                          >
+                            {i}
+                          </Pagination.Item>
+                        );
+                      }
+                      return pages;
+                    })()}
                     <Pagination.Next
                       onClick={() => setCurrentPage((p) => p + 1)}
                       disabled={currentPage === totalPages}
@@ -530,6 +547,7 @@ const EducationListAllPage = () => {
                       disabled={currentPage === totalPages}
                     />
                   </Pagination>
+                  <div style={{ width: "100px" }}></div>
                 </div>
               )}
             </>

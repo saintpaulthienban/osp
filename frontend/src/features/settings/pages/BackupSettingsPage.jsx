@@ -1,5 +1,5 @@
 // src/features/settings/pages/BackupSettingsPage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Container,
   Row,
@@ -23,6 +23,7 @@ import {
   FaHistory,
   FaHdd,
   FaSync,
+  FaUpload,
 } from "react-icons/fa";
 import { settingService } from "@services";
 import { formatDate, formatFileSize } from "@utils/formatters";
@@ -31,6 +32,7 @@ const BackupSettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
   const [backups, setBackups] = useState([]);
   const [storageInfo, setStorageInfo] = useState({
@@ -39,7 +41,10 @@ const BackupSettingsPage = () => {
     percentage: 0,
   });
   const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     fetchData();
@@ -141,6 +146,54 @@ const BackupSettingsPage = () => {
     } finally {
       setRestoring(false);
       setSelectedBackup(null);
+    }
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.name.endsWith(".sql")) {
+        setMessage({ type: "danger", text: "Vui lòng chọn file SQL (.sql)" });
+        return;
+      }
+      setSelectedFile(file);
+      setShowUploadModal(true);
+    }
+  };
+
+  const handleUploadRestore = async () => {
+    if (!selectedFile) return;
+
+    setUploading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const result = await settingService.restoreFromFile(selectedFile);
+      if (result.success) {
+        setMessage({
+          type: "success",
+          text: "Đã khôi phục dữ liệu thành công! Hệ thống sẽ tải lại...",
+        });
+        setShowUploadModal(false);
+        setSelectedFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        setMessage({
+          type: "danger",
+          text: result.error || "Lỗi khi khôi phục dữ liệu!",
+        });
+      }
+    } catch (error) {
+      console.error("Error restoring from file:", error);
+      setMessage({
+        type: "danger",
+        text: "Lỗi khi khôi phục dữ liệu từ file!",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -282,6 +335,32 @@ const BackupSettingsPage = () => {
               Làm mới
             </Button>
             <Button
+              variant="outline-success"
+              size="sm"
+              className="me-2"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? (
+                <>
+                  <Spinner size="sm" className="me-1" />
+                  Đang tải...
+                </>
+              ) : (
+                <>
+                  <FaUpload className="me-1" />
+                  Khôi phục từ file
+                </>
+              )}
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept=".sql"
+              style={{ display: "none" }}
+              onChange={handleFileSelect}
+            />
+            <Button
               variant="primary"
               size="sm"
               onClick={handleCreateBackup}
@@ -397,6 +476,70 @@ const BackupSettingsPage = () => {
           </Button>
           <Button variant="danger" onClick={handleRestore}>
             Xác nhận khôi phục
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Upload Restore Confirmation Modal */}
+      <Modal
+        show={showUploadModal}
+        onHide={() => {
+          setShowUploadModal(false);
+          setSelectedFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FaUpload className="me-2" />
+            Khôi phục từ file SQL
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Alert variant="warning">
+            <strong>Cảnh báo!</strong> Khôi phục dữ liệu sẽ thay thế toàn bộ dữ
+            liệu hiện tại bằng dữ liệu từ file SQL được tải lên. Thao tác này
+            không thể hoàn tác.
+          </Alert>
+          {selectedFile && (
+            <div className="p-3 bg-light rounded">
+              <p className="mb-1">
+                <strong>File đã chọn:</strong>
+              </p>
+              <p className="mb-1">
+                <FaDatabase className="me-2 text-primary" />
+                {selectedFile.name}
+              </p>
+              <p className="mb-0 text-muted small">
+                Kích thước: {formatFileSize(selectedFile.size)}
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowUploadModal(false);
+              setSelectedFile(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="danger"
+            onClick={handleUploadRestore}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <>
+                <Spinner size="sm" className="me-1" />
+                Đang khôi phục...
+              </>
+            ) : (
+              "Xác nhận khôi phục"
+            )}
           </Button>
         </Modal.Footer>
       </Modal>

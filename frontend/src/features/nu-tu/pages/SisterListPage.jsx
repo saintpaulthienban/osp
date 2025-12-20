@@ -46,7 +46,7 @@ const SisterListPage = () => {
   // Pagination state
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 20,
+    limit: 10,
     total: 0,
     totalPages: 1,
   });
@@ -74,7 +74,7 @@ const SisterListPage = () => {
           if (response.meta) {
             setPagination({
               page: response.meta.page || 1,
-              limit: response.meta.limit || 20,
+              limit: response.meta.limit || 10,
               total: response.meta.total || 0,
               totalPages: response.meta.totalPages || 1,
             });
@@ -234,7 +234,6 @@ const SisterListPage = () => {
   const renderPagination = () => {
     if (pagination.totalPages <= 1) return null;
 
-    const items = [];
     const maxVisible = 5;
     let startPage = Math.max(1, pagination.page - Math.floor(maxVisible / 2));
     let endPage = Math.min(pagination.totalPages, startPage + maxVisible - 1);
@@ -243,25 +242,9 @@ const SisterListPage = () => {
       startPage = Math.max(1, endPage - maxVisible + 1);
     }
 
-    items.push(
-      <Pagination.First
-        key="first"
-        disabled={pagination.page === 1}
-        onClick={() => handlePageChange(1)}
-      />,
-      <Pagination.Prev
-        key="prev"
-        disabled={pagination.page === 1}
-        onClick={() => handlePageChange(pagination.page - 1)}
-      />
-    );
-
-    if (startPage > 1) {
-      items.push(<Pagination.Ellipsis key="ellipsis-start" disabled />);
-    }
-
+    const pages = [];
     for (let i = startPage; i <= endPage; i++) {
-      items.push(
+      pages.push(
         <Pagination.Item
           key={i}
           active={i === pagination.page}
@@ -272,24 +255,33 @@ const SisterListPage = () => {
       );
     }
 
-    if (endPage < pagination.totalPages) {
-      items.push(<Pagination.Ellipsis key="ellipsis-end" disabled />);
-    }
-
-    items.push(
-      <Pagination.Next
-        key="next"
-        disabled={pagination.page === pagination.totalPages}
-        onClick={() => handlePageChange(pagination.page + 1)}
-      />,
-      <Pagination.Last
-        key="last"
-        disabled={pagination.page === pagination.totalPages}
-        onClick={() => handlePageChange(pagination.totalPages)}
-      />
+    return (
+      <div className="d-flex justify-content-between align-items-center py-3 px-3">
+        <small className="text-muted">
+          Trang {pagination.page} / {pagination.totalPages}
+        </small>
+        <Pagination className="mb-0">
+          <Pagination.First
+            onClick={() => handlePageChange(1)}
+            disabled={pagination.page === 1}
+          />
+          <Pagination.Prev
+            onClick={() => handlePageChange(pagination.page - 1)}
+            disabled={pagination.page === 1}
+          />
+          {pages}
+          <Pagination.Next
+            onClick={() => handlePageChange(pagination.page + 1)}
+            disabled={pagination.page === pagination.totalPages}
+          />
+          <Pagination.Last
+            onClick={() => handlePageChange(pagination.totalPages)}
+            disabled={pagination.page === pagination.totalPages}
+          />
+        </Pagination>
+        <div style={{ width: "100px" }}></div>
+      </div>
     );
-
-    return <Pagination className="mb-0">{items}</Pagination>;
   };
 
   return (
@@ -523,17 +515,8 @@ const SisterListPage = () => {
         </Card>
       )}
 
-      {/* Pagination & Summary */}
-      {!loading && !error && sortedSisters.length > 0 && (
-        <div className="d-flex justify-content-between align-items-center mt-4">
-          <div className="text-muted">
-            Hiển thị {(pagination.page - 1) * pagination.limit + 1} -{" "}
-            {Math.min(pagination.page * pagination.limit, sortedSisters.length)}{" "}
-            / {sortedSisters.length} nữ tu
-          </div>
-          {renderPagination()}
-        </div>
-      )}
+      {/* Pagination */}
+      {!loading && !error && sortedSisters.length > 0 && renderPagination()}
     </Container>
   );
 };

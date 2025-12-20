@@ -249,43 +249,6 @@ const ProfilePage = () => {
                 </div>
               </Card.Body>
             </Card>
-
-            {/* Quick Info Card */}
-            <Card className="health-info-card">
-              <Card.Header className="system-header">
-                <i className="fas fa-info-circle"></i>
-                <span>Thông tin nhanh</span>
-              </Card.Header>
-              <Card.Body className="p-2">
-                <div className="quick-info">
-                  <div className="quick-info-item">
-                    <i className="fas fa-envelope text-primary"></i>
-                    <div className="info-content">
-                      <small className="text-muted">Email</small>
-                      <div className="fw-semibold">{user.email}</div>
-                    </div>
-                  </div>
-
-                  {user.phone && (
-                    <div className="quick-info-item">
-                      <i className="fas fa-phone text-success"></i>
-                      <div className="info-content">
-                        <small className="text-muted">Điện thoại</small>
-                        <div className="fw-semibold">{user.phone}</div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="quick-info-item">
-                    <i className="fas fa-user-tag text-info"></i>
-                    <div className="info-content">
-                      <small className="text-muted">Vai trò</small>
-                      <div className="fw-semibold">{user.role_label}</div>
-                    </div>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
           </Col>
 
           {/* Right Column - Forms */}
