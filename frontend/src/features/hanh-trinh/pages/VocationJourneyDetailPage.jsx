@@ -65,7 +65,10 @@ const VocationJourneyDetailPage = () => {
     if (!name) return "-";
     // Remove pattern like "123_. ", "1_. ", "123. ", "1. " from beginning
     // Xử lý cả dấu _, dấu chấm, và khoảng trắng
-    const parsed = name.toString().replace(/^\d+[_.]?\s*\.?\s*/, "").trim();
+    const parsed = name
+      .toString()
+      .replace(/^\d+[_.]?\s*\.?\s*/, "")
+      .trim();
     return parsed || "-";
   };
 

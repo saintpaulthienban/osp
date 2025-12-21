@@ -8,7 +8,7 @@ async function addHometownColumn() {
       host: "localhost",
       user: "root",
       password: "",
-      database: "hr_records"
+      database: "hr_records",
     });
     console.log("✅ Connected to database");
 
@@ -36,7 +36,6 @@ async function addHometownColumn() {
     console.log("✅ Added 'hometown' column to sisters table");
     console.log("📍 Position: after 'place_of_birth'");
     console.log("📝 Type: VARCHAR(150) NULL");
-
   } catch (error) {
     console.error("❌ Error:", error.message);
     throw error;

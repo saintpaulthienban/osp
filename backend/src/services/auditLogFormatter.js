@@ -3,6 +3,10 @@
 
 const openaiService = require("./openaiService");
 
+// Cache cho tên cộng đoàn
+let communityCache = {};
+let communityCacheExpiry = 0;
+
 class AuditLogFormatter {
   constructor() {
     // Mapping action types sang tiếng Việt
@@ -205,6 +209,44 @@ class AuditLogFormatter {
   }
 
   /**
+   * Lấy tên cộng đoàn từ ID (với cache)
+   */
+  async getCommunityName(communityId) {
+    if (!communityId) return null;
+    
+    const now = Date.now();
+    
+    // Nếu cache hết hạn (5 phút), reset cache
+    if (now > communityCacheExpiry) {
+      communityCache = {};
+      communityCacheExpiry = now + 5 * 60 * 1000;
+    }
+    
+    // Nếu đã có trong cache
+    if (communityCache[communityId]) {
+      return communityCache[communityId];
+    }
+    
+    // Lookup từ database
+    try {
+      const BaseModel = require("../models/BaseModel");
+      const rows = await BaseModel.prototype.executeQuery(
+        "SELECT name FROM communities WHERE id = ?",
+        [communityId]
+      );
+      
+      if (rows && rows.length > 0 && rows[0].name) {
+        communityCache[communityId] = rows[0].name;
+        return rows[0].name;
+      }
+    } catch (error) {
+      console.error("Error fetching community name:", error.message);
+    }
+    
+    return null;
+  }
+
+  /**
    * Format giá trị cho hiển thị
    */
   formatValue(value, fieldName) {
@@ -273,7 +315,7 @@ class AuditLogFormatter {
   /**
    * Phân tích sự thay đổi giữa old_value và new_value
    */
-  parseChanges(oldValue, newValue) {
+  async parseChanges(oldValue, newValue) {
     const changes = [];
 
     const oldObj = this.parseJsonValue(oldValue);
@@ -298,13 +340,32 @@ class AuditLogFormatter {
 
       // Kiểm tra có thay đổi không
       if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        let oldValueFormatted = this.formatValue(oldVal, key);
+        let newValueFormatted = this.formatValue(newVal, key);
+        
+        // Special handling for community_id fields - lookup community name
+        if (key === "community_id" || key === "current_community_id") {
+          if (oldVal) {
+            const oldCommunityName = await this.getCommunityName(oldVal);
+            if (oldCommunityName) {
+              oldValueFormatted = oldCommunityName;
+            }
+          }
+          if (newVal) {
+            const newCommunityName = await this.getCommunityName(newVal);
+            if (newCommunityName) {
+              newValueFormatted = newCommunityName;
+            }
+          }
+        }
+        
         changes.push({
           field: key,
           fieldVi: this.translateField(key),
           oldValue: oldVal,
           newValue: newVal,
-          oldValueFormatted: this.formatValue(oldVal, key),
-          newValueFormatted: this.formatValue(newVal, key),
+          oldValueFormatted,
+          newValueFormatted,
         });
       }
     }
@@ -394,7 +455,7 @@ Yêu cầu:
    * Format đầy đủ một audit log entry
    */
   async formatActivity(activity, useAI = false) {
-    const changes = this.parseChanges(activity.old_value, activity.new_value);
+    const changes = await this.parseChanges(activity.old_value, activity.new_value);
 
     // Lấy tên entity từ new_value hoặc old_value
     let entityName = null;
