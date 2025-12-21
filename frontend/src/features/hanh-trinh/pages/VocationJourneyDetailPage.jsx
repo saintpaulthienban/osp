@@ -60,6 +60,15 @@ const VocationJourneyDetailPage = () => {
     navigate(`/nu-tu/${journey.sister_id}`);
   };
 
+  // Parse name to remove ID prefix (e.g., "1_. Tên" -> "Tên" hoặc "1. Tên" -> "Tên")
+  const parsePersonName = (name) => {
+    if (!name) return "-";
+    // Remove pattern like "123_. ", "1_. ", "123. ", "1. " from beginning
+    // Xử lý cả dấu _, dấu chấm, và khoảng trắng
+    const parsed = name.toString().replace(/^\d+[_.]?\s*\.?\s*/, "").trim();
+    return parsed || "-";
+  };
+
   if (loading) {
     return (
       <div
@@ -172,15 +181,29 @@ const VocationJourneyDetailPage = () => {
                   />
                 </Col>
 
+                {/* Community */}
+                {journey.community_name && (
+                  <Col md={6}>
+                    <InfoItem
+                      icon="fas fa-home"
+                      iconColor="success"
+                      label="Cộng đoàn"
+                      value={journey.community_name}
+                    />
+                  </Col>
+                )}
+
                 {/* Location */}
-                <Col md={6}>
-                  <InfoItem
-                    icon="fas fa-map-marker-alt"
-                    iconColor="danger"
-                    label="Địa điểm"
-                    value={journey.location}
-                  />
-                </Col>
+                {journey.location && (
+                  <Col md={6}>
+                    <InfoItem
+                      icon="fas fa-map-marker-alt"
+                      iconColor="danger"
+                      label="Địa điểm"
+                      value={journey.location}
+                    />
+                  </Col>
+                )}
 
                 {/* Superior */}
                 {journey.superior && (
@@ -189,7 +212,7 @@ const VocationJourneyDetailPage = () => {
                       icon="fas fa-user-tie"
                       iconColor="warning"
                       label="Bề trên"
-                      value={journey.superior}
+                      value={parsePersonName(journey.superior)}
                     />
                   </Col>
                 )}
@@ -201,7 +224,7 @@ const VocationJourneyDetailPage = () => {
                       icon="fas fa-chalkboard-teacher"
                       iconColor="secondary"
                       label="Chị giáo"
-                      value={journey.formation_director}
+                      value={parsePersonName(journey.formation_director)}
                     />
                   </Col>
                 )}
@@ -348,39 +371,6 @@ const VocationJourneyDetailPage = () => {
                 <i className="fas fa-user me-2"></i>
                 Xem hồ sơ đầy đủ
               </Button>
-            </Card.Body>
-          </Card>
-
-          {/* Timeline History */}
-          <Card className="health-info-card mt-4">
-            <Card.Header className="system-header">
-              <i className="fas fa-history"></i>
-              <span>Lịch sử cập nhật</span>
-            </Card.Header>
-            <Card.Body>
-              <div className="history-list">
-                <div className="history-item">
-                  <i className="fas fa-plus-circle text-success"></i>
-                  <div>
-                    <div className="fw-semibold">Tạo mới</div>
-                    <small className="text-muted">
-                      {formatDate(journey.created_at)}
-                    </small>
-                  </div>
-                </div>
-                {journey.updated_at &&
-                  journey.updated_at !== journey.created_at && (
-                    <div className="history-item">
-                      <i className="fas fa-edit text-primary"></i>
-                      <div>
-                        <div className="fw-semibold">Cập nhật</div>
-                        <small className="text-muted">
-                          {formatDate(journey.updated_at)}
-                        </small>
-                      </div>
-                    </div>
-                  )}
-              </div>
             </Card.Body>
           </Card>
         </Col>

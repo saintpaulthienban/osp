@@ -303,22 +303,22 @@ export const calculateDuration = (startDate, endDate = null) => {
   if (diffYears > 0) {
     const remainingMonths = diffMonths % 12;
     if (remainingMonths > 0) {
-      return `${diffYears} nam ${remainingMonths} thang`;
+      return `${diffYears} năm ${remainingMonths} tháng`;
     }
-    return `${diffYears} nam`;
+    return `${diffYears} năm`;
   }
 
   if (diffMonths > 0) {
     const remainingDays = diffDays % 30;
     if (remainingDays > 0) {
-      return `${diffMonths} thang ${remainingDays} ngay`;
+      return `${diffMonths} tháng ${remainingDays} ngày`;
     }
-    return `${diffMonths} thang`;
+    return `${diffMonths} tháng`;
   }
 
   if (diffDays > 0) {
-    return `${diffDays} ngay`;
+    return `${diffDays} ngày`;
   }
 
-  return "Hom nay";
+  return "Hôm nay";
 };

@@ -70,6 +70,7 @@ const SisterFormPage = () => {
     code: "", // Mã số
     date_of_birth: "",
     place_of_birth: "",
+    hometown: "", // Quê quán
     nationality: "Việt Nam",
     id_card: "",
     id_card_date: "",
@@ -373,6 +374,8 @@ const SisterFormPage = () => {
               className={`me-2 ${
                 toast.variant === "success"
                   ? "fas fa-check-circle text-success"
+                  : toast.variant === "warning"
+                  ? "fas fa-exclamation-triangle text-warning"
                   : "fas fa-exclamation-circle text-danger"
               }`}
             ></i>
@@ -464,7 +467,7 @@ const SisterFormPage = () => {
                     {/* Basic Info Tab */}
                     <Tab.Pane eventKey="basic">
                       <Row className="g-3">
-                        <Col md={6}>
+                        <Col md={4}>
                           <Input
                             label="Họ và tên khai sinh"
                             name="birth_name"
@@ -477,7 +480,7 @@ const SisterFormPage = () => {
                           />
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={4}>
                           <Input
                             label="Tên thánh"
                             name="saint_name"
@@ -487,7 +490,7 @@ const SisterFormPage = () => {
                           />
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={4}>
                           <Input
                             label="Mã số"
                             name="code"
@@ -498,7 +501,7 @@ const SisterFormPage = () => {
                           />
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={4}>
                           <DatePicker
                             label="Ngày sinh"
                             name="date_of_birth"
@@ -513,7 +516,7 @@ const SisterFormPage = () => {
                           />
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={4}>
                           <Input
                             label="Nơi sinh"
                             name="place_of_birth"
@@ -523,13 +526,48 @@ const SisterFormPage = () => {
                           />
                         </Col>
 
-                        <Col md={6}>
+                        <Col md={4}>
+                          <Input
+                            label="Quê quán"
+                            name="hometown"
+                            value={values.hometown}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                          />
+                        </Col>
+
+                        <Col md={4}>
                           <Input
                             label="Quốc tịch"
                             name="nationality"
                             value={values.nationality}
                             onChange={handleChange}
                             onBlur={handleBlur}
+                          />
+                        </Col>
+
+                        <Col md={4}>
+                          <Input
+                            label="Điện thoại"
+                            name="phone"
+                            value={values.phone}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.phone}
+                            touched={touched.phone}
+                          />
+                        </Col>
+
+                        <Col md={4}>
+                          <Input
+                            label="Email"
+                            name="email"
+                            type="email"
+                            value={values.email}
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            error={errors.email}
+                            touched={touched.email}
                           />
                         </Col>
 
@@ -562,31 +600,6 @@ const SisterFormPage = () => {
                             value={values.id_card_place}
                             onChange={handleChange}
                             onBlur={handleBlur}
-                          />
-                        </Col>
-
-                        <Col md={6}>
-                          <Input
-                            label="Điện thoại"
-                            name="phone"
-                            value={values.phone}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={errors.phone}
-                            touched={touched.phone}
-                          />
-                        </Col>
-
-                        <Col md={6}>
-                          <Input
-                            label="Email"
-                            name="email"
-                            type="email"
-                            value={values.email}
-                            onChange={handleChange}
-                            onBlur={handleBlur}
-                            error={errors.email}
-                            touched={touched.email}
                           />
                         </Col>
 

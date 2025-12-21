@@ -10,6 +10,7 @@ class SisterModel extends BaseModel {
       "saint_name",
       "date_of_birth",
       "place_of_birth",
+      "hometown",
       "permanent_address",
       "current_address",
       "nationality",

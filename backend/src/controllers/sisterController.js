@@ -361,6 +361,7 @@ const updateSister = async (req, res) => {
       "saint_name",
       "date_of_birth",
       "place_of_birth",
+      "hometown",
       "permanent_address",
       "current_address",
       "nationality",

@@ -230,12 +230,23 @@ const getJourneyById = async (req, res) => {
                s.phone as sister_phone,
                s.email as sister_email,
                s.photo_url as sister_avatar,
-               c.name as sister_community,
+               (
+                 SELECT c2.name 
+                 FROM vocation_journey vj2 
+                 LEFT JOIN communities c2 ON vj2.community_id = c2.id
+                 WHERE vj2.sister_id = s.id 
+                   AND vj2.community_id IS NOT NULL
+                 ORDER BY 
+                   CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+                   vj2.start_date DESC
+                 LIMIT 1
+               ) as sister_community,
+               c.name as community_name,
                js.name as stage_name,
                js.color as stage_color
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
-        LEFT JOIN communities c ON s.current_community_id = c.id
+        LEFT JOIN communities c ON vj.community_id = c.id
         LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
         WHERE vj.id = ?
       `;
@@ -250,12 +261,23 @@ const getJourneyById = async (req, res) => {
                s.phone as sister_phone,
                s.email as sister_email,
                s.photo_url as sister_avatar,
-               c.name as sister_community,
+               (
+                 SELECT c2.name 
+                 FROM vocation_journey vj2 
+                 LEFT JOIN communities c2 ON vj2.community_id = c2.id
+                 WHERE vj2.sister_id = s.id 
+                   AND vj2.community_id IS NOT NULL
+                 ORDER BY 
+                   CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+                   vj2.start_date DESC
+                 LIMIT 1
+               ) as sister_community,
+               c.name as community_name,
                vj.stage as stage_name,
                '#6c757d' as stage_color
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
-        LEFT JOIN communities c ON s.current_community_id = c.id
+        LEFT JOIN communities c ON vj.community_id = c.id
         WHERE vj.id = ?
       `;
     }

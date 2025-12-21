@@ -187,8 +187,9 @@ const VocationJourneyFormPage = () => {
     if (values.end_date && values.start_date) {
       const start = new Date(values.start_date);
       const end = new Date(values.end_date);
-      if (end < start) {
-        newErrors.end_date = "Ngày kết thúc phải sau ngày bắt đầu";
+      if (end <= start) {
+        newErrors.end_date = "Ngày kết thúc phải lớn hơn ngày bắt đầu";
+        toast.error("Ngày kết thúc phải lớn hơn ngày bắt đầu");
       }
     }
 
@@ -226,10 +227,15 @@ const VocationJourneyFormPage = () => {
 
       const payload = {};
       allowedFields.forEach((field) => {
-        if (values[field] !== undefined) {
+        if (values[field] !== undefined && values[field] !== "") {
           payload[field] = values[field];
         }
       });
+
+      // Don't send empty end_date to backend
+      if (payload.end_date === "") {
+        delete payload.end_date;
+      }
 
       let response;
       if (isEditMode) {
