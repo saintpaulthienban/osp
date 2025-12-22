@@ -1,0 +1,1 @@
+ALTER TABLE community_assignments MODIFY COLUMN role VARCHAR(50) NOT NULL;

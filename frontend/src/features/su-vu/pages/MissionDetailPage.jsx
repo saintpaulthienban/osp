@@ -16,7 +16,6 @@ import { missionService, sisterService } from "@services";
 import { formatDate, calculateDuration } from "@utils";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
-import MissionForm from "../components/MissionForm";
 import "./MissionDetailPage.css";
 
 const MissionDetailPage = () => {
@@ -25,7 +24,6 @@ const MissionDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [mission, setMission] = useState(null);
   const [error, setError] = useState("");
-  const [showEditForm, setShowEditForm] = useState(false);
 
   useEffect(() => {
     fetchMissionDetail();
@@ -80,23 +78,7 @@ const MissionDetailPage = () => {
   };
 
   const handleEdit = () => {
-    setShowEditForm(true);
-  };
-
-  const handleEditSubmit = async (values) => {
-    try {
-      const result = await missionService.update(id, values);
-      if (result.success) {
-        toast.success("Cập nhật sứ vụ thành công!");
-        setShowEditForm(false);
-        fetchMissionDetail(); // Reload data
-      } else {
-        toast.error(result.error || "Không thể cập nhật sứ vụ");
-      }
-    } catch (error) {
-      console.error("Error updating mission:", error);
-      toast.error("Đã xảy ra lỗi khi cập nhật sứ vụ");
-    }
+    navigate(`/su-vu/${id}/edit`);
   };
 
   const handleDelete = async () => {
@@ -250,7 +232,7 @@ const MissionDetailPage = () => {
                   </Col>
 
                   {/* Field (Lĩnh vực) */}
-                  <Col md={12}>
+                  <Col md={6}>
                     <InfoItem
                       icon="fas fa-tags"
                       iconColor="info"
@@ -260,16 +242,34 @@ const MissionDetailPage = () => {
                   </Col>
 
                   {/* Specific Role */}
-                  {mission.specific_role && (
-                    <Col md={12}>
-                      <InfoItem
-                        icon="fas fa-briefcase"
-                        iconColor="primary"
-                        label="Vai trò cụ thể"
-                        value={mission.specific_role}
-                      />
-                    </Col>
-                  )}
+                  <Col md={6}>
+                    <InfoItem
+                      icon="fas fa-briefcase"
+                      iconColor="primary"
+                      label="Vai trò cụ thể"
+                      value={mission.specific_role || "—"}
+                    />
+                  </Col>
+
+                  {/* Organization */}
+                  <Col md={6}>
+                    <InfoItem
+                      icon="fas fa-building"
+                      iconColor="success"
+                      label="Tổ chức"
+                      value={mission.organization || "—"}
+                    />
+                  </Col>
+
+                  {/* Address */}
+                  <Col md={6}>
+                    <InfoItem
+                      icon="fas fa-map-marker-alt"
+                      iconColor="danger"
+                      label="Địa chỉ"
+                      value={mission.address || "—"}
+                    />
+                  </Col>
 
                   {/* Timeline */}
                   <Col md={6}>
@@ -538,15 +538,6 @@ const MissionDetailPage = () => {
             </Card>
           </Col>
         </Row>
-
-        {/* Edit Form Modal */}
-        <MissionForm
-          show={showEditForm}
-          onHide={() => setShowEditForm(false)}
-          mission={mission}
-          onSubmit={handleEditSubmit}
-          sisterId={mission?.sister_id}
-        />
       </Container>
     </div>
   );

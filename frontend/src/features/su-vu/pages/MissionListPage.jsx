@@ -16,8 +16,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import { missionService } from "@services";
 import { useTable, useDebounce } from "@hooks";
-import MissionForm from "../components/MissionForm";
-import MissionFilter from "../components/MissionFilter";
 import SearchBox from "@components/common/SearchBox";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
@@ -28,8 +26,6 @@ const MissionListPage = () => {
   const { sisterId } = useParams();
   const [loading, setLoading] = useState(true);
   const [missions, setMissions] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [selectedMission, setSelectedMission] = useState(null);
 
   const table = useTable({
     initialPageSize: 10,
@@ -109,8 +105,11 @@ const MissionListPage = () => {
   };
 
   const handleAdd = () => {
-    setSelectedMission(null);
-    setShowForm(true);
+    if (sisterId) {
+      navigate(`/nu-tu/${sisterId}/su-vu/create`);
+    } else {
+      navigate("/su-vu/create");
+    }
   };
 
   const handleView = (mission) => {
@@ -118,8 +117,11 @@ const MissionListPage = () => {
   };
 
   const handleEdit = (mission) => {
-    setSelectedMission(mission);
-    setShowForm(true);
+    if (sisterId) {
+      navigate(`/nu-tu/${sisterId}/su-vu/${mission.id}/edit`);
+    } else {
+      navigate(`/su-vu/${mission.id}/edit`);
+    }
   };
 
   const handleDelete = async (mission) => {
@@ -136,36 +138,6 @@ const MissionListPage = () => {
         console.error("Error deleting mission:", error);
         toast.error("Đã xảy ra lỗi khi xóa sứ vụ");
       }
-    }
-  };
-
-  const handleSubmit = async (values) => {
-    try {
-      // Add sisterId if provided via URL
-      const payload = sisterId ? { ...values, sister_id: sisterId } : values;
-
-      if (selectedMission) {
-        const result = await missionService.update(selectedMission.id, payload);
-        if (result.success) {
-          toast.success("Cập nhật sứ vụ thành công!");
-        } else {
-          toast.error(result.error || "Không thể cập nhật sứ vụ");
-          return;
-        }
-      } else {
-        const result = await missionService.create(payload);
-        if (result.success) {
-          toast.success("Thêm sứ vụ mới thành công!");
-        } else {
-          toast.error(result.error || "Không thể thêm sứ vụ");
-          return;
-        }
-      }
-      setShowForm(false);
-      fetchMissions();
-    } catch (error) {
-      console.error("Error saving mission:", error);
-      toast.error("Đã xảy ra lỗi khi lưu sứ vụ");
     }
   };
 
@@ -547,14 +519,6 @@ const MissionListPage = () => {
           </Card.Footer>
         )}
       </Card>
-
-      <MissionForm
-        show={showForm}
-        onHide={() => setShowForm(false)}
-        mission={selectedMission}
-        onSubmit={handleSubmit}
-        sisterId={sisterId}
-      />
     </Container>
   );
 };

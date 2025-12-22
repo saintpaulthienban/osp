@@ -1,0 +1,1 @@
+ALTER TABLE vocation_journey MODIFY COLUMN stage VARCHAR(50) NOT NULL;

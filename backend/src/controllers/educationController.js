@@ -119,6 +119,12 @@ const addEducation = async (req, res) => {
       institution,
       start_date: startDate,
       end_date: endDate,
+      graduation_year,
+      status,
+      gpa,
+      thesis_title,
+      notes,
+      documents,
     } = req.body;
     if (!sisterId || !level) {
       return res
@@ -138,6 +144,12 @@ const addEducation = async (req, res) => {
       institution: institution || null,
       start_date: startDate || null,
       end_date: endDate || null,
+      graduation_year: graduation_year || null,
+      status: status || "dang_hoc",
+      gpa: gpa || null,
+      thesis_title: thesis_title || null,
+      notes: notes || null,
+      documents: documents || null,
       certificate_url: null,
     };
 

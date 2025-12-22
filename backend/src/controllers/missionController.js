@@ -185,17 +185,19 @@ const getMissionById = async (req, res) => {
               s.phone AS sister_phone,
               s.email AS sister_email,
               s.photo_url AS sister_avatar,
-              c_active.name AS sister_community
+              (
+                SELECT c2.name 
+                FROM vocation_journey vj2 
+                LEFT JOIN communities c2 ON vj2.community_id = c2.id
+                WHERE vj2.sister_id = s.id 
+                  AND vj2.community_id IS NOT NULL
+                ORDER BY 
+                  CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+                  vj2.start_date DESC
+                LIMIT 1
+              ) as sister_community
        FROM missions m
        INNER JOIN sisters s ON s.id = m.sister_id
-       LEFT JOIN (
-         SELECT sister_id, community_id
-         FROM community_assignments
-         WHERE end_date IS NULL OR end_date >= CURDATE()
-         ORDER BY start_date DESC
-         LIMIT 1
-       ) ca ON ca.sister_id = s.id
-       LEFT JOIN communities c_active ON ca.community_id = c_active.id
        WHERE m.id = ?`,
       [id]
     );
@@ -204,7 +206,22 @@ const getMissionById = async (req, res) => {
       return res.status(404).json({ message: "Mission not found" });
     }
 
-    return res.status(200).json({ data: missions[0] });
+    // Parse documents JSON string to array
+    const missionData = missions[0];
+    if (missionData.documents) {
+      try {
+        missionData.documents =
+          typeof missionData.documents === "string"
+            ? JSON.parse(missionData.documents)
+            : missionData.documents;
+      } catch (e) {
+        missionData.documents = [];
+      }
+    } else {
+      missionData.documents = [];
+    }
+
+    return res.status(200).json({ data: missionData });
   } catch (error) {
     console.error("getMissionById error:", error.message);
     console.error("getMissionById stack:", error.stack);
@@ -221,6 +238,7 @@ const createMission = async (req, res) => {
       start_date: startDate,
       end_date: endDate,
       notes,
+      documents,
     } = req.body;
 
     const normalizedEndDate = endDate ? endDate : null;
@@ -253,6 +271,7 @@ const createMission = async (req, res) => {
       start_date: startDate,
       end_date: normalizedEndDate,
       notes: notes || null,
+      documents: documents ? JSON.stringify(documents) : null,
     };
 
     const created = await MissionModel.create(payload);
@@ -302,12 +321,20 @@ const updateMission = async (req, res) => {
       "start_date",
       "end_date",
       "notes",
+      "documents",
     ];
 
     const payload = {};
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        payload[field] = req.body[field];
+        // Convert documents array to JSON string for storage
+        if (field === "documents") {
+          payload[field] = req.body[field]
+            ? JSON.stringify(req.body[field])
+            : null;
+        } else {
+          payload[field] = req.body[field];
+        }
       }
     });
 

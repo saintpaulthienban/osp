@@ -1,0 +1,53 @@
+/* Mission Form Page Styles */
+
+.health-info-card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.health-info-card .card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  padding: 1rem 1.5rem;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.health-info-card .card-header i {
+  font-size: 1.1rem;
+}
+
+.documents-header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%) !important;
+}
+
+.system-header {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+.document-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.document-item {
+  transition: all 0.2s ease;
+}
+
+.document-item:hover {
+  background-color: #f8f9fa;
+  transform: translateX(2px);
+}
+
+.document-item .btn {
+  padding: 0.25rem 0.5rem;
+}
+
+.document-item .btn i {
+  font-size: 0.875rem;
+}

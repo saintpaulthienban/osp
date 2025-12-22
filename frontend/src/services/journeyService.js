@@ -8,7 +8,7 @@ const JOURNEY_ENDPOINTS = {
   DETAIL: (id) => `/vocation-journeys/${id}`,
   UPDATE: (id) => `/vocation-journeys/${id}`,
   DELETE: (id) => `/vocation-journeys/${id}`,
-  BY_SISTER: (sisterId) => `/sisters/${sisterId}/vocation-journeys`,
+  BY_SISTER: (sisterId) => `/vocation-journeys/sister/${sisterId}`,
   TIMELINE: (sisterId) => `/sisters/${sisterId}/vocation-journeys/timeline`,
   STATISTICS: "/vocation-journeys/statistics",
   FILTER_BY_STAGE: "/vocation-journeys/filter",

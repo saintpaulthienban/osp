@@ -7,9 +7,12 @@ class MissionModel extends BaseModel {
       "sister_id",
       "field",
       "specific_role",
+      "organization",
+      "address",
       "start_date",
       "end_date",
       "notes",
+      "documents",
     ];
     this.requiredFields = ["sister_id", "field", "start_date"];
   }

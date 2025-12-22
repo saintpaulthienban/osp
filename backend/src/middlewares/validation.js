@@ -116,11 +116,7 @@ const validateCommunityAssignmentCreate = [
   body("community_id")
     .isInt({ min: 1 })
     .withMessage("community_id must be a positive integer"),
-  body("role")
-    .notEmpty()
-    .withMessage("role is required")
-    .isIn(["superior", "deputy", "treasurer", "member"])
-    .withMessage("invalid assignment role"),
+  body("role").notEmpty().withMessage("role is required"),
   body("start_date")
     .notEmpty()
     .withMessage("start_date is required")
@@ -133,19 +129,7 @@ const validateVocationJourneyCreate = [
   body("sister_id")
     .isInt({ min: 1 })
     .withMessage("sister_id must be a positive integer"),
-  body("stage")
-    .notEmpty()
-    .withMessage("stage is required")
-    .isIn([
-      "inquiry",
-      "postulant",
-      "aspirant",
-      "novice",
-      "temporary_vows",
-      "perpetual_vows",
-      "left",
-    ])
-    .withMessage("invalid stage value"),
+  body("stage").notEmpty().withMessage("stage is required"),
   body("start_date")
     .notEmpty()
     .withMessage("start_date is required")
@@ -158,18 +142,7 @@ const validateMissionCreate = [
   body("sister_id")
     .isInt({ min: 1 })
     .withMessage("sister_id must be a positive integer"),
-  body("field")
-    .notEmpty()
-    .withMessage("field is required")
-    .isIn([
-      "education",
-      "pastoral",
-      "publishing",
-      "media",
-      "healthcare",
-      "social",
-    ])
-    .withMessage("invalid mission field"),
+  body("field").notEmpty().withMessage("field is required"),
   body("start_date")
     .notEmpty()
     .withMessage("start_date is required")
@@ -182,11 +155,7 @@ const validateEducationCreate = [
   body("sister_id")
     .isInt({ min: 1 })
     .withMessage("sister_id must be a positive integer"),
-  body("level")
-    .notEmpty()
-    .withMessage("level is required")
-    .isIn(["secondary", "bachelor", "master", "doctorate"])
-    .withMessage("invalid education level"),
+  body("level").notEmpty().withMessage("level is required"),
   optionalDate("start_date"),
   optionalDate("end_date"),
 ];
