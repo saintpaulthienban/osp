@@ -1,7 +1,8 @@
 // src/features/hoc-van/components/EducationForm/EducationForm.jsx
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Modal, Form, Button, Row, Col } from "react-bootstrap";
+import { toast } from "react-toastify";
 import { useForm } from "@hooks";
 import Input from "@components/forms/Input";
 import Select from "@components/forms/Select";
@@ -18,6 +19,7 @@ const EducationForm = ({ show, onHide, education, onSubmit }) => {
     handleBlur,
     setFieldValue,
     handleSubmit,
+    resetForm,
   } = useForm(
     education || {
       degree: "",
@@ -33,12 +35,55 @@ const EducationForm = ({ show, onHide, education, onSubmit }) => {
     }
   );
 
+  // Reset form when education changes or modal opens
+  useEffect(() => {
+    if (show) {
+      if (education) {
+        resetForm(education);
+      } else {
+        resetForm({
+          degree: "",
+          institution: "",
+          major: "",
+          start_year: "",
+          graduation_year: "",
+          gpa: "",
+          certificate_number: "",
+          certificate_date: "",
+          status: "in_progress",
+          notes: "",
+        });
+      }
+    }
+  }, [show, education]);
+
   const validate = () => {
     const newErrors = {};
 
     if (!values.degree) newErrors.degree = "Bằng cấp là bắt buộc";
     if (!values.institution) newErrors.institution = "Trường học là bắt buộc";
     if (!values.start_year) newErrors.start_year = "Năm bắt đầu là bắt buộc";
+
+    // Validate graduation_year > start_year
+    if (values.graduation_year && values.start_year) {
+      const startYear = parseInt(values.start_year);
+      const graduationYear = parseInt(values.graduation_year);
+      if (graduationYear <= startYear) {
+        newErrors.graduation_year = "Năm tốt nghiệp phải lớn hơn năm bắt đầu";
+        toast.error("Năm tốt nghiệp phải lớn hơn năm bắt đầu");
+      }
+    }
+
+    // Validate graduation_year <= current year
+    if (values.graduation_year) {
+      const graduationYear = parseInt(values.graduation_year);
+      const currentYear = new Date().getFullYear();
+      if (graduationYear > currentYear) {
+        newErrors.graduation_year =
+          "Năm tốt nghiệp không được lớn hơn năm hiện tại";
+        toast.error("Năm tốt nghiệp không được lớn hơn năm hiện tại");
+      }
+    }
 
     return newErrors;
   };

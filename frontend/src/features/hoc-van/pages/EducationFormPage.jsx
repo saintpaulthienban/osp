@@ -262,8 +262,78 @@ const EducationFormPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const validate = () => {
+    const newErrors = {};
+
+    if (!formData.sister_id) {
+      newErrors.sister_id = "Vui lòng chọn nữ tu";
+      toast.error("Vui lòng chọn nữ tu");
+    }
+    if (!formData.level) {
+      newErrors.level = "Trình độ là bắt buộc";
+      toast.error("Trình độ là bắt buộc");
+    }
+    if (!formData.institution) {
+      newErrors.institution = "Trường học là bắt buộc";
+      toast.error("Trường học là bắt buộc");
+    }
+
+    // Validate graduation_year > start_date year
+    if (formData.graduation_year && formData.start_date) {
+      const startYear = new Date(formData.start_date).getFullYear();
+      const graduationYear = parseInt(formData.graduation_year);
+      if (graduationYear <= startYear) {
+        newErrors.graduation_year = "Năm tốt nghiệp phải lớn hơn năm bắt đầu";
+        toast.error("Năm tốt nghiệp phải lớn hơn năm bắt đầu");
+      }
+    }
+
+    // Validate graduation_year <= current year
+    if (formData.graduation_year) {
+      const graduationYear = parseInt(formData.graduation_year);
+      const currentYear = new Date().getFullYear();
+      if (graduationYear > currentYear) {
+        newErrors.graduation_year =
+          "Năm tốt nghiệp không được lớn hơn năm hiện tại";
+        toast.error("Năm tốt nghiệp không được lớn hơn năm hiện tại");
+      }
+    }
+
+    // Validate end_date > start_date
+    if (formData.end_date && formData.start_date) {
+      const start = new Date(formData.start_date);
+      const end = new Date(formData.end_date);
+      if (end <= start) {
+        newErrors.end_date = "Ngày kết thúc phải lớn hơn ngày bắt đầu";
+        toast.error("Ngày kết thúc phải lớn hơn ngày bắt đầu");
+      }
+    }
+
+    // Validate end_date <= today
+    if (formData.end_date) {
+      const end = new Date(formData.end_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      end.setHours(0, 0, 0, 0);
+
+      if (end > today) {
+        newErrors.end_date = "Ngày kết thúc không được lớn hơn ngày hôm nay";
+        toast.error("Ngày kết thúc không được lớn hơn ngày hôm nay");
+      }
+    }
+
+    return newErrors;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Validate form
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
+
     setSaving(true);
     setMessage({ type: "", text: "" });
 

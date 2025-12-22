@@ -461,7 +461,7 @@ const EducationListAllPage = () => {
                         <td>{edu.institution || "N/A"}</td>
                         <td>{edu.major || "N/A"}</td>
                         <td>{getLevelBadge(edu.level)}</td>
-                        <td>{edu.graduation_year || "Đang học"}</td>
+                        <td>{edu.graduation_year || "—"}</td>
                         <td>{getStatusBadge(edu.status)}</td>
                         <td className="text-end">
                           <Link

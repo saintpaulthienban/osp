@@ -2,7 +2,7 @@
 // Timeline theo cộng đoàn - hiển thị lịch sử bổ nhiệm, thay đổi trong cộng đoàn
 
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Button, Modal } from "react-bootstrap";
+import { Container, Row, Col, Button } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { communityService } from "@services";
 import { formatDate, resolveMediaUrl } from "@utils";
@@ -69,10 +69,6 @@ const CommunityTimelinePage = () => {
   const [selectedCommunityId, setSelectedCommunityId] = useState(
     communityId || ""
   );
-
-  // Modal for assignment detail
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -170,8 +166,10 @@ const CommunityTimelinePage = () => {
   };
 
   const handleItemClick = (assignment) => {
-    setSelectedAssignment(assignment);
-    setShowDetailModal(true);
+    // Navigate to assignment detail page
+    navigate(
+      `/cong-doan/assignments/${assignment.community_id}-${assignment.id}`
+    );
   };
 
   const calculateStats = () => {
@@ -414,174 +412,6 @@ const CommunityTimelinePage = () => {
           </div>
         </div>
       </Container>
-
-      {/* Assignment Detail Modal */}
-      <Modal
-        show={showDetailModal}
-        onHide={() => setShowDetailModal(false)}
-        size="lg"
-        centered
-      >
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <i className="fas fa-info-circle me-2"></i>
-            Chi tiết bổ nhiệm
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedAssignment && (
-            <div className="assignment-detail">
-              <Row>
-                <Col md={6}>
-                  <div className="detail-item mb-3">
-                    <label className="fw-bold text-muted">Nữ tu</label>
-                    <p className="mb-0 fs-5">
-                      {selectedAssignment.saint_name ||
-                        selectedAssignment.birth_name ||
-                        `#${selectedAssignment.sister_id}`}
-                    </p>
-                  </div>
-                </Col>
-                <Col md={6}>
-                  <div className="detail-item mb-3">
-                    <label className="fw-bold text-muted">Vai trò</label>
-                    <p className="mb-0">
-                      <span
-                        className={`badge ${
-                          getRoleConfig(selectedAssignment.role).className
-                        }`}
-                        style={{
-                          backgroundColor:
-                            selectedAssignment.role === "superior"
-                              ? "#6c5ce7"
-                              : selectedAssignment.role === "assistant"
-                              ? "#00b894"
-                              : "#0984e3",
-                          color: "#fff",
-                          padding: "8px 12px",
-                          fontSize: "0.9rem",
-                        }}
-                      >
-                        <i
-                          className={`${
-                            getRoleConfig(selectedAssignment.role).icon
-                          } me-1`}
-                        ></i>
-                        {getRoleConfig(selectedAssignment.role).label}
-                      </span>
-                    </p>
-                  </div>
-                </Col>
-              </Row>
-
-              <Row>
-                <Col md={6}>
-                  <div className="detail-item mb-3">
-                    <label className="fw-bold text-muted">Ngày bắt đầu</label>
-                    <p className="mb-0">
-                      <i className="fas fa-calendar-alt text-primary me-2"></i>
-                      {formatDate(selectedAssignment.start_date)}
-                    </p>
-                  </div>
-                </Col>
-                <Col md={6}>
-                  <div className="detail-item mb-3">
-                    <label className="fw-bold text-muted">Ngày kết thúc</label>
-                    <p className="mb-0">
-                      <i className="fas fa-calendar-check text-success me-2"></i>
-                      {selectedAssignment.end_date
-                        ? formatDate(selectedAssignment.end_date)
-                        : "Hiện tại"}
-                    </p>
-                  </div>
-                </Col>
-              </Row>
-
-              {selectedAssignment.decision_number && (
-                <Row>
-                  <Col md={6}>
-                    <div className="detail-item mb-3">
-                      <label className="fw-bold text-muted">
-                        Số quyết định
-                      </label>
-                      <p className="mb-0">
-                        <i className="fas fa-file-alt text-warning me-2"></i>
-                        {selectedAssignment.decision_number}
-                      </p>
-                    </div>
-                  </Col>
-                  <Col md={6}>
-                    <div className="detail-item mb-3">
-                      <label className="fw-bold text-muted">
-                        Ngày quyết định
-                      </label>
-                      <p className="mb-0">
-                        <i className="fas fa-calendar text-info me-2"></i>
-                        {selectedAssignment.decision_date
-                          ? formatDate(selectedAssignment.decision_date)
-                          : "Chưa có"}
-                      </p>
-                    </div>
-                  </Col>
-                </Row>
-              )}
-
-              {selectedAssignment.decision_file_url && (
-                <Row>
-                  <Col md={12}>
-                    <div className="detail-item mb-3">
-                      <label className="fw-bold text-muted">
-                        Tài liệu quyết định
-                      </label>
-                      <p className="mb-0">
-                        <a
-                          href={resolveMediaUrl(
-                            selectedAssignment.decision_file_url
-                          )}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="btn btn-outline-primary btn-sm"
-                        >
-                          <i className="fas fa-download me-1"></i>
-                          Tải xuống
-                        </a>
-                      </p>
-                    </div>
-                  </Col>
-                </Row>
-              )}
-
-              {selectedAssignment.notes && (
-                <Row>
-                  <Col md={12}>
-                    <div className="detail-item mb-3">
-                      <label className="fw-bold text-muted">Ghi chú</label>
-                      <p className="mb-0 p-3 bg-light rounded">
-                        {selectedAssignment.notes}
-                      </p>
-                    </div>
-                  </Col>
-                </Row>
-              )}
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
-            <i className="fas fa-times me-1"></i>
-            Đóng
-          </Button>
-          {selectedAssignment && (
-            <Button
-              variant="primary"
-              onClick={() => navigate(`/nu-tu/${selectedAssignment.sister_id}`)}
-            >
-              <i className="fas fa-user me-1"></i>
-              Xem hồ sơ nữ tu
-            </Button>
-          )}
-        </Modal.Footer>
-      </Modal>
     </div>
   );
 };
