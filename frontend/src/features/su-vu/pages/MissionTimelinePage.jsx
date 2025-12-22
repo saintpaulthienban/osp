@@ -93,7 +93,7 @@ const MissionTimelinePage = () => {
       <div className="timeline-date">
         <i className="fas fa-calendar"></i>
         {formatDate(item.start_date)}
-        {item.end_date ? ` - ${formatDate(item.end_date)}` : " - Hiện tại"}
+        {item.end_date ? ` - ${formatDate(item.end_date)}` : " — "}
       </div>
       <h3 className="timeline-title">
         {item.specific_role || item.position || item.title || config.label}

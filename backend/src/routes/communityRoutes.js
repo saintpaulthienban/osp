@@ -2,6 +2,7 @@ const express = require("express");
 const communityController = require("../controllers/communityController");
 const { authenticateToken, checkPermission } = require("../middlewares/auth");
 const { attachDataScope } = require("../middlewares/dataScope");
+const { uploadDecision } = require("../middlewares/upload");
 const {
   validateCommunityCreate,
   validateCommunityUpdate,
@@ -55,12 +56,14 @@ router.delete(
 router.post(
   "/:id/members",
   checkPermission("communities.assign"),
+  uploadDecision,
   communityController.addMember
 );
 
 router.put(
   "/:id/members/:memberId",
   checkPermission("communities.assign"),
+  uploadDecision,
   communityController.updateMemberRole
 );
 

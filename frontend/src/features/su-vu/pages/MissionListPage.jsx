@@ -493,7 +493,7 @@ const MissionListPage = () => {
                               : "-"}{" "}
                             {mission.end_date
                               ? `- ${formatDate(mission.end_date)}`
-                              : "- Hiện tại"}
+                              : "—"}
                           </td>
                           <td>
                             <Badge bg={isActive ? "success" : "secondary"}>

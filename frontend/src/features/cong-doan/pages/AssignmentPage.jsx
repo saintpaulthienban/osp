@@ -6,7 +6,6 @@ import {
   Card,
   Button,
   Form,
-  Modal,
   Badge,
   Spinner,
 } from "react-bootstrap";
@@ -16,9 +15,6 @@ import { communityService, sisterService, lookupService } from "@services";
 import { formatDate } from "@utils";
 import Breadcrumb from "@components/common/Breadcrumb";
 import DataTable from "@components/tables/DataTable";
-import SearchableSelect from "@components/forms/SearchableSelect";
-import DatePicker from "@components/forms/DatePicker";
-import Select from "@components/forms/Select";
 import "./AssignmentPage.css";
 
 // Role labels and styles - Default roles (Leadership positions only)
@@ -103,7 +99,6 @@ const AssignmentPage = () => {
 
   // State
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
   const [communities, setCommunities] = useState([]);
   const [sisters, setSisters] = useState([]);
   const [assignments, setAssignments] = useState([]);
@@ -138,23 +133,6 @@ const AssignmentPage = () => {
     community_id: "",
     role: "",
     status: "",
-  });
-
-  // Modal states
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState(null);
-  const [isEditing, setIsEditing] = useState(false);
-
-  // Form data
-  const [formData, setFormData] = useState({
-    sister_id: "",
-    community_id: "",
-    role: "superior",
-    start_date: new Date().toISOString().split("T")[0],
-    end_date: "",
-    decision_number: "",
-    notes: "",
   });
 
   // Stats
@@ -309,10 +287,6 @@ const AssignmentPage = () => {
       const response = await lookupService.deleteCommunityRole(role.id);
       if (response && response.success) {
         await fetchCommunityRoles();
-        // Reset role selection if deleted role was selected
-        if (formData.role === role.code) {
-          handleFormChange("role", "superior");
-        }
         toast.success("Đã xóa chức vụ thành công!");
       }
     } catch (error) {
@@ -400,121 +374,17 @@ const AssignmentPage = () => {
   };
 
   const handleOpenAddModal = () => {
-    setFormData({
-      sister_id: "",
-      community_id: "",
-      role: "superior",
-      start_date: new Date().toISOString().split("T")[0],
-      end_date: "",
-      decision_number: "",
-      notes: "",
-    });
-    setIsEditing(false);
-    setShowAddModal(true);
+    navigate("/cong-doan/assignments/create");
   };
 
   const handleOpenEditModal = (assignment) => {
-    console.log("Opening edit modal for assignment:", assignment);
-    setFormData({
-      sister_id: assignment.sister_id || assignment.id,
-      community_id: assignment.community_id,
-      role: assignment.role || "superior",
-      start_date:
-        assignment.start_date?.split("T")[0] ||
-        assignment.joined_date?.split("T")[0] ||
-        "",
-      end_date: assignment.end_date?.split("T")[0] || "",
-      decision_number: assignment.decision_number || "",
-      notes: assignment.notes || "",
-    });
-    setSelectedAssignment(assignment);
-    setIsEditing(true);
-    setShowAddModal(true);
+    const assignmentId = `${assignment.community_id}-${assignment.id}`;
+    navigate(`/cong-doan/assignments/${assignmentId}/edit`);
   };
 
   const handleViewAssignment = (assignment) => {
-    setSelectedAssignment(assignment);
-    setShowViewModal(true);
-  };
-
-  const handleFormChange = (field, value) => {
-    const newFormData = { ...formData, [field]: value };
-    setFormData(newFormData);
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.sister_id || !formData.community_id) {
-      toast.error("Vui lòng chọn nữ tu và cộng đoàn");
-      return;
-    }
-
-    // Validate end_date > start_date
-    if (formData.end_date && formData.start_date) {
-      const startDate = new Date(formData.start_date);
-      const endDate = new Date(formData.end_date);
-      if (endDate <= startDate) {
-        toast.error("Ngày kết thúc phải lớn hơn ngày bắt đầu");
-        return;
-      }
-    }
-
-    try {
-      setSubmitting(true);
-
-      if (isEditing && selectedAssignment) {
-        const communityId =
-          parseInt(formData.community_id) || selectedAssignment.community_id;
-        const assignmentId = selectedAssignment.id;
-
-        console.log("Updating assignment:", {
-          community_id: communityId,
-          assignment_id: assignmentId,
-          data: {
-            role: formData.role,
-            start_date: formData.start_date || null,
-            end_date: formData.end_date || null,
-            decision_number: formData.decision_number || null,
-            notes: formData.notes || null,
-          },
-        });
-
-        const result = await communityService.updateMemberRole(
-          communityId,
-          assignmentId,
-          {
-            role: formData.role,
-            start_date: formData.start_date || null,
-            end_date: formData.end_date || null,
-            decision_number: formData.decision_number || null,
-            notes: formData.notes || null,
-          }
-        );
-        console.log("Update result:", result);
-        toast.success("Đã cập nhật bổ nhiệm thành công");
-      } else {
-        await communityService.addMember(formData.community_id, {
-          sister_id: parseInt(formData.sister_id),
-          role: formData.role,
-          start_date: formData.start_date,
-          end_date: formData.end_date || null,
-          decision_number: formData.decision_number || null,
-          notes: formData.notes || null,
-        });
-        toast.success("Đã thêm bổ nhiệm thành công");
-      }
-
-      setShowAddModal(false);
-
-      // Small delay to ensure backend has processed the update
-      setTimeout(() => {
-        fetchAssignmentsFromAPI();
-      }, 300);
-    } catch (err) {
-      console.error("Error saving assignment:", err);
-      toast.error("Có lỗi xảy ra khi lưu bổ nhiệm");
-    } finally {
-      setSubmitting(false);
-    }
+    const assignmentId = `${assignment.community_id}-${assignment.id}`;
+    navigate(`/cong-doan/assignments/${assignmentId}`);
   };
 
   const handleDelete = async (assignment) => {
@@ -678,7 +548,7 @@ const AssignmentPage = () => {
       key: "end_date",
       label: "Ngày Kết Thúc",
       sortable: true,
-      render: (row) => (row.end_date ? formatDate(row.end_date) : "Hiện tại"),
+      render: (row) => (row.end_date ? formatDate(row.end_date) : "—"),
     },
     {
       key: "status",
@@ -911,378 +781,6 @@ const AssignmentPage = () => {
           />
         </Card.Body>
       </Card>
-
-      {/* Add/Edit Modal */}
-      <Modal
-        show={showAddModal}
-        onHide={() => setShowAddModal(false)}
-        size="lg"
-      >
-        <Modal.Header closeButton className="modal-header-custom">
-          <Modal.Title>
-            <i
-              className={`fas ${isEditing ? "fa-edit" : "fa-user-plus"} me-2`}
-            ></i>
-            {isEditing ? "Chỉnh Sửa Bổ Nhiệm" : "Bổ Nhiệm Mới"}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Row>
-              <Col md={6} className="mb-3">
-                <SearchableSelect
-                  label={
-                    <>
-                      <i className="fas fa-user text-primary me-1"></i>Nữ Tu
-                    </>
-                  }
-                  name="sister_id"
-                  value={formData.sister_id}
-                  onChange={(e) =>
-                    handleFormChange("sister_id", e.target.value)
-                  }
-                  disabled={isEditing}
-                  required
-                  placeholder="Nhập tên để tìm nữ tu..."
-                  maxDisplayItems={5}
-                  options={(sisters || []).map((s) => {
-                    const saintName = s.saint_name || "";
-                    const birthName = s.birth_name || "";
-                    const code = s.code || "";
-
-                    let label = "";
-                    if (saintName && birthName) {
-                      label = `${saintName} - ${birthName}`;
-                    } else if (birthName) {
-                      label = birthName;
-                    } else if (saintName) {
-                      label = saintName;
-                    } else {
-                      label = `Nữ tu #${s.id}`;
-                    }
-
-                    if (code) {
-                      label += ` (${code})`;
-                    }
-
-                    return {
-                      value: s.id,
-                      label: label,
-                    };
-                  })}
-                />
-              </Col>
-
-              <Col md={6} className="mb-3">
-                <SearchableSelect
-                  label={
-                    <>
-                      <i className="fas fa-home text-primary me-1"></i>Cộng Đoàn
-                    </>
-                  }
-                  name="community_id"
-                  value={formData.community_id}
-                  onChange={(e) =>
-                    handleFormChange("community_id", e.target.value)
-                  }
-                  disabled={isEditing}
-                  required
-                  placeholder="Nhập tên để tìm cộng đoàn..."
-                  maxDisplayItems={5}
-                  options={(communities || []).map((c) => ({
-                    value: c.id,
-                    label: c.name || `Cộng đoàn #${c.id}`,
-                  }))}
-                />
-              </Col>
-
-              <Col md={6} className="mb-3">
-                <Form.Label>
-                  <i className="fas fa-user-tag text-primary me-1"></i>
-                  Chức Vụ <span className="text-danger">*</span>
-                </Form.Label>
-                <div className="d-flex align-items-center gap-2">
-                  <Form.Select
-                    value={formData.role}
-                    onChange={(e) => handleFormChange("role", e.target.value)}
-                    required
-                    style={{ flex: 1 }}
-                  >
-                    {roles.map((role) => (
-                      <option key={role.code} value={role.code}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </Form.Select>
-                  <Button
-                    variant="outline-success"
-                    size="sm"
-                    onClick={() => setShowAddRoleModal(true)}
-                    title="Thêm chức vụ mới"
-                    style={{ flexShrink: 0 }}
-                  >
-                    <i className="fas fa-plus"></i>
-                  </Button>
-                  {formData.role && (
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      onClick={() => handleDeleteRole(formData.role)}
-                      title="Xóa chức vụ đã chọn"
-                      style={{ flexShrink: 0 }}
-                    >
-                      <i className="fas fa-minus"></i>
-                    </Button>
-                  )}
-                </div>
-              </Col>
-
-              <Col md={6} className="mb-3">
-                <DatePicker
-                  label={
-                    <>
-                      <i className="fas fa-calendar-alt text-primary me-1"></i>
-                      Ngày Bắt Đầu
-                    </>
-                  }
-                  name="start_date"
-                  value={formData.start_date}
-                  onChange={(e) =>
-                    handleFormChange("start_date", e.target.value)
-                  }
-                  required
-                  placeholder="dd/mm/yyyy"
-                />
-              </Col>
-
-              <Col md={6} className="mb-3">
-                <DatePicker
-                  label={
-                    <>
-                      <i className="fas fa-calendar-check text-primary me-1"></i>
-                      Ngày Kết Thúc
-                    </>
-                  }
-                  name="end_date"
-                  value={formData.end_date}
-                  onChange={(e) => handleFormChange("end_date", e.target.value)}
-                  placeholder="dd/mm/yyyy"
-                />
-                <Form.Text className="text-muted">
-                  Để trống nếu không xác định
-                </Form.Text>
-              </Col>
-
-              <Col md={12} className="mb-3">
-                <Form.Label>
-                  <i className="fas fa-file-alt text-primary me-1"></i>
-                  Quyết Định Bổ Nhiệm
-                </Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Số quyết định..."
-                  value={formData.decision_number}
-                  onChange={(e) =>
-                    handleFormChange("decision_number", e.target.value)
-                  }
-                />
-              </Col>
-
-              <Col md={12} className="mb-3">
-                <Form.Label>
-                  <i className="fas fa-comment-alt text-primary me-1"></i>
-                  Ghi Chú
-                </Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  placeholder="Nhập ghi chú..."
-                  value={formData.notes}
-                  onChange={(e) => handleFormChange("notes", e.target.value)}
-                />
-              </Col>
-            </Row>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddModal(false)}>
-            <i className="fas fa-times me-1"></i>
-            Hủy
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <Spinner size="sm" className="me-1" />
-                Đang lưu...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-save me-1"></i>
-                Lưu Bổ Nhiệm
-              </>
-            )}
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* View Modal */}
-      <Modal
-        show={showViewModal}
-        onHide={() => setShowViewModal(false)}
-        size="lg"
-      >
-        <Modal.Header closeButton className="modal-header-custom">
-          <Modal.Title>
-            <i className="fas fa-info-circle me-2"></i>
-            Chi Tiết Bổ Nhiệm
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedAssignment &&
-            (() => {
-              const sister =
-                getSisterById(selectedAssignment.sister_id) ||
-                selectedAssignment;
-              const community = getCommunityById(
-                selectedAssignment.community_id
-              ) || { name: selectedAssignment.community_name };
-              const roleInfo = getRoleConfig(selectedAssignment.role);
-              const statusInfo = getAssignmentStatus(selectedAssignment);
-
-              return (
-                <Row>
-                  <Col md={6} className="mb-3">
-                    <div className="info-card">
-                      <h6>
-                        <i className="fas fa-user me-2"></i>Thông Tin Nữ Tu
-                      </h6>
-                      <div className="info-content">
-                        <div className="info-item">
-                          <span className="info-label">Tên thánh:</span>
-                          <span className="info-value">
-                            {sister.saint_name || "—"}
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">Họ tên:</span>
-                          <span className="info-value">
-                            {sister.birth_name || "—"}
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">Giai đoạn:</span>
-                          <span className="info-value">
-                            {stageLabels[sister.current_stage] ||
-                              "Chưa xác định"}
-                          </span>
-                        </div>
-                        {sister.phone && (
-                          <div className="info-item">
-                            <span className="info-label">Điện thoại:</span>
-                            <span className="info-value">{sister.phone}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </Col>
-                  <Col md={6} className="mb-3">
-                    <div className="info-card">
-                      <h6>
-                        <i className="fas fa-briefcase me-2"></i>Thông Tin Bổ
-                        Nhiệm
-                      </h6>
-                      <div className="info-content">
-                        <div className="info-item">
-                          <span className="info-label">Cộng đoàn:</span>
-                          <span className="info-value">
-                            {community?.name || "—"}
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">Chức vụ:</span>
-                          <span className="info-value">
-                            <Badge
-                              style={{
-                                backgroundColor: getRoleBadgeColor(
-                                  selectedAssignment.role
-                                ),
-                                color: "#fff",
-                              }}
-                            >
-                              {roleInfo.label}
-                            </Badge>
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">Ngày bắt đầu:</span>
-                          <span className="info-value">
-                            {formatDate(
-                              selectedAssignment.start_date ||
-                                selectedAssignment.joined_date
-                            )}
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">Ngày kết thúc:</span>
-                          <span className="info-value">
-                            {selectedAssignment.end_date
-                              ? formatDate(selectedAssignment.end_date)
-                              : "Chưa xác định"}
-                          </span>
-                        </div>
-                        <div className="info-item">
-                          <span className="info-label">Trạng thái:</span>
-                          <span className="info-value">
-                            <Badge
-                              bg={
-                                statusInfo.className === "status-active"
-                                  ? "success"
-                                  : "secondary"
-                              }
-                            >
-                              {statusInfo.label}
-                            </Badge>
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Col>
-                  {selectedAssignment.notes && (
-                    <Col md={12}>
-                      <div className="info-card">
-                        <h6>
-                          <i className="fas fa-sticky-note me-2"></i>Ghi Chú
-                        </h6>
-                        <div className="info-content">
-                          <p className="mb-0">{selectedAssignment.notes}</p>
-                        </div>
-                      </div>
-                    </Col>
-                  )}
-                </Row>
-              );
-            })()}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowViewModal(false)}>
-            Đóng
-          </Button>
-          <Button
-            variant="warning"
-            onClick={() => {
-              setShowViewModal(false);
-              handleOpenEditModal(selectedAssignment);
-            }}
-          >
-            <i className="fas fa-edit me-1"></i>
-            Chỉnh Sửa
-          </Button>
-        </Modal.Footer>
-      </Modal>
 
       {/* Add Role Modal */}
       {showAddRoleModal && (

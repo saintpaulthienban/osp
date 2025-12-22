@@ -83,7 +83,7 @@ export const menuConfig = [
         id: "cong-doan-assignment",
         label: "Bổ nhiệm chị em",
         icon: "fas fa-user-tag",
-        path: "/cong-doan/assignment",
+        path: "/cong-doan/assignments",
       },
       {
         id: "cong-doan-timeline",

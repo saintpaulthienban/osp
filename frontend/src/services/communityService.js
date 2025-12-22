@@ -116,14 +116,22 @@ const communityService = {
   /**
    * Add member to community
    * @param {string} id
-   * @param {Object} data - { sisterId, role }
+   * @param {Object|FormData} data
    * @returns {Promise}
    */
   addMember: async (id, data) => {
     try {
+      const isFormData = data instanceof FormData;
       const response = await api.post(
         API_ENDPOINTS.COMMUNITY.ADD_MEMBER(id),
-        data
+        data,
+        isFormData
+          ? {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          : undefined
       );
       return response;
     } catch (error) {
@@ -152,14 +160,22 @@ const communityService = {
    * Update member role in community
    * @param {string} id - Community ID
    * @param {string} memberId - Member ID
-   * @param {Object} data - { role }
+   * @param {Object|FormData} data - { role }
    * @returns {Promise}
    */
   updateMemberRole: async (id, memberId, data) => {
     try {
+      const isFormData = data instanceof FormData;
       const response = await api.put(
         API_ENDPOINTS.COMMUNITY.UPDATE_MEMBER_ROLE(id, memberId),
-        data
+        data,
+        isFormData
+          ? {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          : undefined
       );
       return response;
     } catch (error) {

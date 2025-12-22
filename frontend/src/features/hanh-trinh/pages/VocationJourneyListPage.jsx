@@ -167,7 +167,7 @@ const VocationJourneyListPage = () => {
       key: "end_date",
       label: "Ngày kết thúc",
       sortable: true,
-      render: (row) => (row.end_date ? formatDate(row.end_date) : "Hiện tại"),
+      render: (row) => (row.end_date ? formatDate(row.end_date) : "—"),
     },
     {
       key: "community_name",

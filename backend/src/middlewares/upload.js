@@ -6,6 +6,7 @@ const UPLOADS_ROOT = path.resolve(__dirname, "../uploads");
 const PHOTO_DIR = path.join(UPLOADS_ROOT, "photos");
 const DOCUMENT_DIR = path.join(UPLOADS_ROOT, "documents");
 const CERTIFICATE_DIR = path.join(UPLOADS_ROOT, "certificates");
+const DECISION_DIR = path.join(UPLOADS_ROOT, "decisions");
 
 const ensureDir = (dirPath) => {
   if (!fs.existsSync(dirPath)) {
@@ -13,7 +14,7 @@ const ensureDir = (dirPath) => {
   }
 };
 
-[PHOTO_DIR, DOCUMENT_DIR, CERTIFICATE_DIR].forEach(ensureDir);
+[PHOTO_DIR, DOCUMENT_DIR, CERTIFICATE_DIR, DECISION_DIR].forEach(ensureDir);
 
 const generateFilename = (originalName) => {
   const timestamp = Date.now();
@@ -65,6 +66,12 @@ const certificateUploader = createUploader({
   fileSize: 10 * 1024 * 1024,
 });
 
+const decisionUploader = createUploader({
+  directory: DECISION_DIR,
+  allowedMimeTypes: [...documentMimeTypes, ...photoMimeTypes],
+  fileSize: 10 * 1024 * 1024,
+});
+
 const handleUploadErrors = (uploader) => (req, res, next) => {
   uploader(req, res, (error) => {
     if (!error) {
@@ -87,6 +94,9 @@ const handleUploadErrors = (uploader) => (req, res, next) => {
 
 const uploadPhoto = handleUploadErrors(photoUploader.single("photo"));
 const uploadDocument = handleUploadErrors(documentUploader.single("document"));
+const uploadDecision = handleUploadErrors(
+  decisionUploader.single("decision_file")
+);
 const uploadMultiple = handleUploadErrors(
   certificateUploader.array("files", 5)
 );
@@ -97,6 +107,7 @@ const uploadDocuments = handleUploadErrors(
 module.exports = {
   uploadPhoto,
   uploadDocument,
+  uploadDecision,
   uploadMultiple,
   uploadDocuments,
 };

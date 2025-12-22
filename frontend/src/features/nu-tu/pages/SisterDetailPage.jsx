@@ -426,7 +426,7 @@ const SisterDetailPage = () => {
                       {formatDate(j.start_date) || ""}
                     </Text>
                     <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
-                      {j.end_date ? formatDate(j.end_date) : "Hiện tại"}
+                      {j.end_date ? formatDate(j.end_date) : "—"}
                     </Text>
                     <Text style={[pdfStyles.tableCell, { width: "20%" }]}>
                       {j.community_name || ""}
@@ -494,7 +494,7 @@ const SisterDetailPage = () => {
                       {formatDate(e.start_date) || ""}
                     </Text>
                     <Text style={[pdfStyles.tableCell, { width: "16%" }]}>
-                      {e.end_date ? formatDate(e.end_date) : "Hiện tại"}
+                      {e.end_date ? formatDate(e.end_date) : "—"}
                     </Text>
                   </View>
                 ))}
@@ -554,7 +554,7 @@ const SisterDetailPage = () => {
                       {formatDate(m.start_date) || ""}
                     </Text>
                     <Text style={[pdfStyles.tableCell, { width: "15%" }]}>
-                      {m.end_date ? formatDate(m.end_date) : "Hiện tại"}
+                      {m.end_date ? formatDate(m.end_date) : "—"}
                     </Text>
                   </View>
                 ))}
@@ -1277,7 +1277,7 @@ const SisterDetailPage = () => {
                                       {formatDate(journey.start_date)}
                                       {journey.end_date &&
                                         ` - ${formatDate(journey.end_date)}`}
-                                      {!journey.end_date && " - Hiện tại"}
+                                      {!journey.end_date && " —"}
                                     </small>
                                   </div>
                                   {journey.community_name && (
@@ -1447,7 +1447,7 @@ const SisterDetailPage = () => {
                                       {formatDate(mission.start_date)}
                                       {mission.end_date
                                         ? ` - ${formatDate(mission.end_date)}`
-                                        : " - Hiện tại"}
+                                        : " —"}
                                     </small>
                                   </div>
                                   {mission.type && (

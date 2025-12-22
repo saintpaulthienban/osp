@@ -407,14 +407,22 @@ const addMember = async (req, res) => {
       return res.status(400).json({ message: "Sister ID is required" });
     }
 
+    // Get file URL if uploaded
+    let decision_file_url = null;
+    if (req.file) {
+      decision_file_url = `/uploads/decisions/${req.file.filename}`;
+    }
+
     // Create assignment
     const assignmentData = {
       sister_id,
       community_id: id,
       role: role || "member",
       start_date: start_date || new Date().toISOString().split("T")[0],
-      end_date: end_date || null,
+      // Convert empty string to null for end_date
+      end_date: end_date === "" ? null : end_date || null,
       decision_number: decision_number || null,
+      decision_file_url: decision_file_url,
       notes: notes || null,
     };
 
@@ -523,10 +531,18 @@ const updateMemberRole = async (req, res) => {
     const updateData = {};
     if (role !== undefined) updateData.role = role;
     if (start_date !== undefined) updateData.start_date = start_date;
-    if (end_date !== undefined) updateData.end_date = end_date;
+    // Convert empty string to null for end_date
+    if (end_date !== undefined) {
+      updateData.end_date = end_date === "" ? null : end_date;
+    }
     if (decision_number !== undefined)
       updateData.decision_number = decision_number;
     if (notes !== undefined) updateData.notes = notes;
+
+    // Get file URL if uploaded
+    if (req.file) {
+      updateData.decision_file_url = `/uploads/decisions/${req.file.filename}`;
+    }
 
     const updatedAssignment = await CommunityAssignmentModel.update(
       memberId,

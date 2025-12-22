@@ -167,9 +167,7 @@ const VocationJourneyDetailPage = () => {
                     iconColor="success"
                     label="Ngày kết thúc"
                     value={
-                      journey.end_date
-                        ? formatDate(journey.end_date)
-                        : "Hiện tại"
+                      journey.end_date ? formatDate(journey.end_date) : "—"
                     }
                   />
                 </Col>

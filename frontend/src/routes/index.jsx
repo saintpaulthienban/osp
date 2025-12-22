@@ -39,6 +39,8 @@ import CongDoanListPage from "@features/cong-doan/pages/CongDoanListPage";
 import CommunityDetailPage from "@features/cong-doan/pages/CommunityDetailPage";
 import CommunityFormPage from "@features/cong-doan/pages/CommunityFormPage";
 import AssignmentPage from "@features/cong-doan/pages/AssignmentPage";
+import AssignmentFormPage from "@features/cong-doan/pages/AssignmentFormPage";
+import AssignmentDetailPage from "@features/cong-doan/pages/AssignmentDetailPage";
 import CommunityTimelinePage from "@features/cong-doan/pages/CommunityTimelinePage";
 
 // Suc Khoe
@@ -161,7 +163,19 @@ const AppRoutes = () => {
 
           {/* Cong Doan */}
           <Route path="/cong-doan" element={<CongDoanListPage />} />
-          <Route path="/cong-doan/assignment" element={<AssignmentPage />} />
+          <Route path="/cong-doan/assignments" element={<AssignmentPage />} />
+          <Route
+            path="/cong-doan/assignments/create"
+            element={<AssignmentFormPage />}
+          />
+          <Route
+            path="/cong-doan/assignments/:id/edit"
+            element={<AssignmentFormPage />}
+          />
+          <Route
+            path="/cong-doan/assignments/:id"
+            element={<AssignmentDetailPage />}
+          />
           <Route
             path="/cong-doan/timeline"
             element={<CommunityTimelinePage />}
@@ -173,7 +187,6 @@ const AppRoutes = () => {
           <Route path="/cong-doan/create" element={<CommunityFormPage />} />
           <Route path="/cong-doan/:id" element={<CommunityDetailPage />} />
           <Route path="/cong-doan/:id/edit" element={<CommunityFormPage />} />
-          <Route path="/cong-doan/:id/assign" element={<AssignmentPage />} />
 
           {/* Suc Khoe */}
           <Route path="/suc-khoe" element={<HealthRecordListPage />} />
