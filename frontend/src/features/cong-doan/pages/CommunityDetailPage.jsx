@@ -800,15 +800,8 @@ const CommunityDetailPage = () => {
                   </Tab.Pane>
 
                   <Tab.Pane eventKey="members">
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="mb-3">
                       <h5 className="mb-0">Danh sách thành viên</h5>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleAssignMembers}
-                      >
-                        <i className="fas fa-plus me-2"></i>Thêm thành viên
-                      </Button>
                     </div>
 
                     {members.length > 0 ? (
@@ -863,10 +856,6 @@ const CommunityDetailPage = () => {
                     ) : (
                       <div className="text-center py-5">
                         <p className="text-muted">Chưa có thành viên nào</p>
-                        <Button variant="primary" onClick={handleAssignMembers}>
-                          <i className="fas fa-user-plus me-2"></i>Thêm thành
-                          viên đầu tiên
-                        </Button>
                       </div>
                     )}
                   </Tab.Pane>

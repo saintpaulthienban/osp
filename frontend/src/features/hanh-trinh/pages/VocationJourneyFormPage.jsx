@@ -18,6 +18,7 @@ import {
   sisterService,
   lookupService,
   communityService,
+  uploadService,
 } from "@services";
 import { useForm } from "@hooks";
 import Input from "@components/forms/Input";
@@ -164,6 +165,8 @@ const VocationJourneyFormPage = () => {
             new Date(response.data.end_date).getFullYear() >= 1900
               ? response.data.end_date.split("T")[0]
               : "",
+          // Load documents array (already parsed by backend)
+          documents: response.data.documents || [],
         };
         console.log("Setting values:", journeyData);
         updateValues(journeyData);
@@ -190,6 +193,19 @@ const VocationJourneyFormPage = () => {
       if (end <= start) {
         newErrors.end_date = "Ngày kết thúc phải lớn hơn ngày bắt đầu";
         toast.error("Ngày kết thúc phải lớn hơn ngày bắt đầu");
+      }
+    }
+
+    // Validate end_date <= today
+    if (values.end_date) {
+      const end = new Date(values.end_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day
+      end.setHours(0, 0, 0, 0);
+
+      if (end > today) {
+        newErrors.end_date = "Ngày kết thúc không được lớn hơn ngày hôm nay";
+        toast.error("Ngày kết thúc không được lớn hơn ngày hôm nay");
       }
     }
 
@@ -223,18 +239,27 @@ const VocationJourneyFormPage = () => {
         "community_id",
         "supervisor_id",
         "notes",
+        "documents",
       ];
 
       const payload = {};
       allowedFields.forEach((field) => {
-        if (values[field] !== undefined && values[field] !== "") {
+        // Special handling for end_date: send null if empty (for editing mode to clear date)
+        if (field === "end_date") {
+          payload[field] = values[field] || null;
+        } else if (values[field] !== undefined && values[field] !== "") {
           payload[field] = values[field];
         }
       });
 
-      // Don't send empty end_date to backend
-      if (payload.end_date === "") {
+      // For create mode, don't send null end_date
+      if (!isEditMode && payload.end_date === null) {
         delete payload.end_date;
+      }
+
+      // Ensure documents is an array (could be empty)
+      if (!payload.documents) {
+        payload.documents = [];
       }
 
       let response;
@@ -279,11 +304,31 @@ const VocationJourneyFormPage = () => {
     }
   };
 
-  const handleAddDocument = (url) => {
-    setFieldValue("documents", [
-      ...values.documents,
-      { url, name: "Document" },
-    ]);
+  const handleAddDocument = async (event) => {
+    const files = event.target?.value;
+    if (!files || files.length === 0) return;
+
+    try {
+      // Upload files to server
+      const result = await uploadService.uploadDocuments(files);
+      if (result.success && result.files) {
+        // Convert uploaded files to document objects
+        const newDocs = result.files.map((file) => ({
+          url: file.url,
+          name: file.originalName || file.name,
+          size: file.size,
+          uploaded_at: new Date().toISOString(),
+        }));
+
+        setFieldValue("documents", [...values.documents, ...newDocs]);
+        toast.success(`Đã tải lên ${newDocs.length} tệp thành công`);
+      } else {
+        toast.error(result.error || "Không thể tải tệp lên");
+      }
+    } catch (error) {
+      console.error("Error uploading documents:", error);
+      toast.error("Có lỗi xảy ra khi tải tệp lên");
+    }
   };
 
   const handleRemoveDocument = (index) => {
@@ -614,19 +659,63 @@ const VocationJourneyFormPage = () => {
 
                 {values.documents && values.documents.length > 0 && (
                   <div className="mt-3">
-                    <h6 className="mb-2">Danh sách tài liệu:</h6>
+                    <h6 className="mb-2">
+                      Danh sách tài liệu ({values.documents.length}):
+                    </h6>
                     <div className="document-list">
                       {values.documents.map((doc, index) => (
-                        <div key={index} className="document-item">
-                          <i className="fas fa-file-pdf text-danger me-2"></i>
-                          <span className="flex-grow-1">{doc.name}</span>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleRemoveDocument(index)}
-                          >
-                            <i className="fas fa-times"></i>
-                          </Button>
+                        <div
+                          key={index}
+                          className="document-item d-flex align-items-center justify-content-between p-2 border rounded mb-2"
+                        >
+                          <div className="d-flex align-items-center flex-grow-1 me-2">
+                            <i className="fas fa-file-pdf text-danger me-2"></i>
+                            <div className="text-truncate">
+                              <div
+                                className="fw-medium text-truncate"
+                                style={{ maxWidth: "180px" }}
+                              >
+                                {doc.name}
+                              </div>
+                              {doc.size && (
+                                <small className="text-muted">
+                                  {(doc.size / 1024).toFixed(2)} KB
+                                </small>
+                              )}
+                            </div>
+                          </div>
+                          <div className="d-flex gap-1">
+                            {doc.url && (
+                              <>
+                                <Button
+                                  variant="outline-primary"
+                                  size="sm"
+                                  href={doc.url}
+                                  target="_blank"
+                                  title="Xem"
+                                >
+                                  <i className="fas fa-eye"></i>
+                                </Button>
+                                <Button
+                                  variant="outline-success"
+                                  size="sm"
+                                  href={doc.url}
+                                  download={doc.name}
+                                  title="Tải xuống"
+                                >
+                                  <i className="fas fa-download"></i>
+                                </Button>
+                              </>
+                            )}
+                            <Button
+                              variant="outline-danger"
+                              size="sm"
+                              onClick={() => handleRemoveDocument(index)}
+                              title="Xóa"
+                            >
+                              <i className="fas fa-times"></i>
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>

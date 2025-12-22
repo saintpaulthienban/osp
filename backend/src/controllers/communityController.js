@@ -139,12 +139,12 @@ const getAllCommunities = async (req, res) => {
     );
     const total = totalRows[0] ? totalRows[0].total : 0;
 
-    // Get communities with member count
+    // Get communities with member count from vocation_journey
     const data = await CommunityModel.executeQuery(
       `SELECT c.*, 
-        (SELECT COUNT(*) FROM community_assignments ca 
-         WHERE ca.community_id = c.id 
-         AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())) as member_count
+        (SELECT COUNT(DISTINCT vj.sister_id) FROM vocation_journey vj 
+         WHERE vj.community_id = c.id 
+         AND (vj.end_date IS NULL OR vj.end_date >= CURDATE())) as member_count
        FROM communities c 
        ${whereClause} 
        ORDER BY c.created_at DESC 
@@ -305,8 +305,9 @@ const deleteCommunity = async (req, res) => {
       });
     }
 
-    const memberCountRows = await CommunityAssignmentModel.executeQuery(
-      `SELECT COUNT(*) AS total FROM community_assignments WHERE community_id = ? AND (end_date IS NULL OR end_date >= CURDATE())`,
+    // Check member count from vocation_journey
+    const memberCountRows = await CommunityModel.executeQuery(
+      `SELECT COUNT(DISTINCT sister_id) AS total FROM vocation_journey WHERE community_id = ? AND (end_date IS NULL OR end_date >= CURDATE())`,
       [id]
     );
     const memberCount = memberCountRows[0] ? memberCountRows[0].total : 0;

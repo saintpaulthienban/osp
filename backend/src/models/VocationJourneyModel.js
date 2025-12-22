@@ -14,6 +14,7 @@ class VocationJourneyModel extends BaseModel {
       "community_id",
       "supervisor_id",
       "notes",
+      "documents",
     ];
     this.requiredFields = ["sister_id", "stage", "start_date"];
   }

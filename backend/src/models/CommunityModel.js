@@ -55,14 +55,42 @@ class CommunityModel extends BaseModel {
       throw new Error("getMembersList requires a community id.");
     }
 
-    const sql = `
-      SELECT ca.*, s.birth_name, s.saint_name, s.code AS sister_code
-      FROM community_assignments ca
-      INNER JOIN sisters s ON s.id = ca.sister_id
-      WHERE ca.community_id = ?
-        AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
-      ORDER BY ca.role ASC, ca.start_date DESC
-    `;
+    // Check if journey_stages table exists
+    let hasJourneyStagesTable = false;
+    try {
+      await this.executeQuery("SELECT 1 FROM journey_stages LIMIT 1");
+      hasJourneyStagesTable = true;
+    } catch (e) {
+      // Table doesn't exist
+    }
+
+    // Get members from vocation_journey (current stage at this community)
+    let sql;
+    if (hasJourneyStagesTable) {
+      sql = `
+        SELECT vj.id, vj.sister_id, vj.stage, vj.start_date, vj.end_date,
+               s.birth_name, s.saint_name, s.code AS sister_code,
+               js.name as stage_name, js.color as stage_color
+        FROM vocation_journey vj
+        INNER JOIN sisters s ON s.id = vj.sister_id
+        LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
+        WHERE vj.community_id = ?
+          AND (vj.end_date IS NULL OR vj.end_date >= CURDATE())
+        ORDER BY vj.start_date DESC
+      `;
+    } else {
+      sql = `
+        SELECT vj.id, vj.sister_id, vj.stage, vj.start_date, vj.end_date,
+               s.birth_name, s.saint_name, s.code AS sister_code,
+               vj.stage as stage_name, '#6c757d' as stage_color
+        FROM vocation_journey vj
+        INNER JOIN sisters s ON s.id = vj.sister_id
+        WHERE vj.community_id = ?
+          AND (vj.end_date IS NULL OR vj.end_date >= CURDATE())
+        ORDER BY vj.start_date DESC
+      `;
+    }
+
     return this.executeQuery(sql, [communityId]);
   }
 }

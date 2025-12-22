@@ -249,13 +249,18 @@ const VocationJourneyDetailPage = () => {
           </Card>
 
           {/* Documents */}
-          {journey.documents && journey.documents.length > 0 && (
-            <Card className="health-info-card">
-              <Card.Header className="documents-header">
-                <i className="fas fa-file-alt"></i>
-                <span>Tài liệu đính kèm ({journey.documents.length})</span>
-              </Card.Header>
-              <Card.Body>
+          <Card className="health-info-card">
+            <Card.Header className="documents-header">
+              <i className="fas fa-file-alt"></i>
+              <span>
+                Tài liệu đính kèm
+                {journey.documents &&
+                  journey.documents.length > 0 &&
+                  ` (${journey.documents.length})`}
+              </span>
+            </Card.Header>
+            <Card.Body>
+              {journey.documents && journey.documents.length > 0 ? (
                 <ListGroup variant="flush">
                   {journey.documents.map((doc, index) => (
                     <ListGroup.Item key={index} className="px-0">
@@ -277,6 +282,7 @@ const VocationJourneyDetailPage = () => {
                             size="sm"
                             href={doc.url}
                             target="_blank"
+                            title="Xem"
                           >
                             <i className="fas fa-eye"></i>
                           </Button>
@@ -284,7 +290,8 @@ const VocationJourneyDetailPage = () => {
                             variant="outline-success"
                             size="sm"
                             href={doc.url}
-                            download
+                            download={doc.name}
+                            title="Tải xuống"
                           >
                             <i className="fas fa-download"></i>
                           </Button>
@@ -293,9 +300,14 @@ const VocationJourneyDetailPage = () => {
                     </ListGroup.Item>
                   ))}
                 </ListGroup>
-              </Card.Body>
-            </Card>
-          )}
+              ) : (
+                <div className="text-center text-muted py-4">
+                  <i className="fas fa-folder-open fa-3x mb-3 opacity-50"></i>
+                  <p className="mb-0">Chưa có tài liệu đính kèm</p>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
         </Col>
 
         {/* Right Column - Sister Info */}

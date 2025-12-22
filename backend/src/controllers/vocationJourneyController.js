@@ -116,6 +116,7 @@ const getAllJourneys = async (req, res) => {
         end_date: "vj.end_date",
         location: "vj.location",
         superior: "vj.superior",
+        community_name: "c.name",
       };
 
       if (sortMapping[sortBy]) {
@@ -155,10 +156,12 @@ const getAllJourneys = async (req, res) => {
                s.saint_name, 
                s.code as sister_code,
                js.name as stage_name,
-               js.color as stage_color
+               js.color as stage_color,
+               c.name as community_name
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
         LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
+        LEFT JOIN communities c ON vj.community_id = c.id
         WHERE ${whereClause}
         ORDER BY ${orderByClause}
         LIMIT ? OFFSET ?
@@ -170,9 +173,11 @@ const getAllJourneys = async (req, res) => {
                s.saint_name, 
                s.code as sister_code,
                vj.stage as stage_name,
-               '#6c757d' as stage_color
+               '#6c757d' as stage_color,
+               c.name as community_name
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
+        LEFT JOIN communities c ON vj.community_id = c.id
         WHERE ${whereClause}
         ORDER BY ${orderByClause}
         LIMIT ? OFFSET ?
@@ -288,7 +293,19 @@ const getJourneyById = async (req, res) => {
       return res.status(404).json({ message: "Journey not found" });
     }
 
-    return res.status(200).json({ success: true, data: rows[0] });
+    // Parse documents JSON
+    const journey = rows[0];
+    if (journey.documents) {
+      try {
+        journey.documents = JSON.parse(journey.documents);
+      } catch (e) {
+        journey.documents = [];
+      }
+    } else {
+      journey.documents = [];
+    }
+
+    return res.status(200).json({ success: true, data: journey });
   } catch (error) {
     console.error("getJourneyById error:", error.message);
     return res.status(500).json({ message: "Failed to fetch journey" });
@@ -311,6 +328,7 @@ const createJourney = async (req, res) => {
       notes,
       community_id: communityId,
       supervisor_id: supervisorId,
+      documents,
     } = req.body;
 
     // Validate required fields
@@ -364,6 +382,7 @@ const createJourney = async (req, res) => {
       community_id: communityId || null,
       supervisor_id: supervisorId || null,
       notes: notes || null,
+      documents: documents ? JSON.stringify(documents) : null,
     };
 
     const createdJourney = await VocationJourneyModel.create(payload);
@@ -527,6 +546,12 @@ const updateJourneyStage = async (req, res) => {
           .json({ message: "end_date must be a valid date" });
       }
       payload.end_date = formatDateOnly(parsedEnd);
+    }
+    // Stringify documents if provided
+    if (payload.documents !== undefined) {
+      payload.documents = payload.documents
+        ? JSON.stringify(payload.documents)
+        : null;
     }
 
     const updated = await VocationJourneyModel.update(stageId, payload);

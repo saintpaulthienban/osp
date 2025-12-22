@@ -21,13 +21,12 @@ import DatePicker from "@components/forms/DatePicker";
 import Select from "@components/forms/Select";
 import "./AssignmentPage.css";
 
-// Role labels and styles - Default roles
+// Role labels and styles - Default roles (Leadership positions only)
 const defaultRoles = [
   { code: "superior", name: "Bề trên", color: "#d63031" },
   { code: "assistant", name: "Phó bề trên", color: "#2d3436" },
   { code: "secretary", name: "Thư ký", color: "#6c5ce7" },
   { code: "treasurer", name: "Thủ quỹ", color: "#e84393" },
-  { code: "member", name: "Thành viên", color: "#0984e3" },
 ];
 
 const roleConfig = {
@@ -63,7 +62,6 @@ const roleConfig = {
     icon: "fa-coins",
     className: "role-treasurer",
   },
-  member: { label: "Thành viên", icon: "fa-user", className: "role-member" },
 };
 
 // Status labels and styles
@@ -152,12 +150,11 @@ const AssignmentPage = () => {
   const [formData, setFormData] = useState({
     sister_id: "",
     community_id: "",
-    role: "member",
+    role: "superior",
     start_date: new Date().toISOString().split("T")[0],
     end_date: "",
     decision_number: "",
     notes: "",
-    is_primary: true,
   });
 
   // Stats
@@ -314,7 +311,7 @@ const AssignmentPage = () => {
         await fetchCommunityRoles();
         // Reset role selection if deleted role was selected
         if (formData.role === role.code) {
-          handleFormChange("role", "member");
+          handleFormChange("role", "superior");
         }
         toast.success("Đã xóa chức vụ thành công!");
       }
@@ -339,23 +336,28 @@ const AssignmentPage = () => {
       const allAssignments = [];
       for (const community of comms) {
         try {
-          const response = await communityService.getMembers(community.id);
-          const members =
-            response?.members ||
-            response?.data?.members ||
-            (Array.isArray(response) ? response : []);
-          if (members && Array.isArray(members)) {
-            members.forEach((m) => {
+          // Use getAssignmentHistory to fetch from community_assignments table
+          // This returns leadership role assignments, not regular members
+          const response = await communityService.getAssignmentHistory(
+            community.id
+          );
+          const assignments =
+            response?.data?.assignments ||
+            response?.assignments ||
+            (Array.isArray(response?.data) ? response.data : []);
+          if (assignments && Array.isArray(assignments)) {
+            assignments.forEach((a) => {
               allAssignments.push({
-                ...m,
+                ...a,
                 community_id: community.id,
-                community_name: community.name,
+                community_name:
+                  response?.data?.community?.name || community.name,
               });
             });
           }
         } catch (err) {
           console.error(
-            `Error fetching members for community ${community.id}:`,
+            `Error fetching assignments for community ${community.id}:`,
             err
           );
         }
@@ -401,12 +403,11 @@ const AssignmentPage = () => {
     setFormData({
       sister_id: "",
       community_id: "",
-      role: "member",
+      role: "superior",
       start_date: new Date().toISOString().split("T")[0],
       end_date: "",
       decision_number: "",
       notes: "",
-      is_primary: true,
     });
     setIsEditing(false);
     setShowAddModal(true);
@@ -417,7 +418,7 @@ const AssignmentPage = () => {
     setFormData({
       sister_id: assignment.sister_id || assignment.id,
       community_id: assignment.community_id,
-      role: assignment.role || "member",
+      role: assignment.role || "superior",
       start_date:
         assignment.start_date?.split("T")[0] ||
         assignment.joined_date?.split("T")[0] ||
@@ -425,7 +426,6 @@ const AssignmentPage = () => {
       end_date: assignment.end_date?.split("T")[0] || "",
       decision_number: assignment.decision_number || "",
       notes: assignment.notes || "",
-      is_primary: assignment.is_primary !== false,
     });
     setSelectedAssignment(assignment);
     setIsEditing(true);
@@ -499,7 +499,6 @@ const AssignmentPage = () => {
           end_date: formData.end_date || null,
           decision_number: formData.decision_number || null,
           notes: formData.notes || null,
-          is_primary: formData.is_primary,
         });
         toast.success("Đã thêm bổ nhiệm thành công");
       }
@@ -537,7 +536,7 @@ const AssignmentPage = () => {
   };
 
   const getRoleConfig = (role) => {
-    return roleConfig[role] || roleConfig.member;
+    return roleConfig[role] || roleConfig.superior;
   };
 
   const getAssignmentStatus = (assignment) => {
@@ -1035,24 +1034,6 @@ const AssignmentPage = () => {
                       <i className="fas fa-minus"></i>
                     </Button>
                   )}
-                </div>
-              </Col>
-
-              <Col md={6} className="mb-3">
-                <Form.Label>
-                  <i className="fas fa-toggle-on text-primary me-1"></i>
-                  Chức Vụ Chính
-                </Form.Label>
-                <div className="mt-2">
-                  <Form.Check
-                    type="switch"
-                    id="isPrimary"
-                    label="Đây là chức vụ chính"
-                    checked={formData.is_primary}
-                    onChange={(e) =>
-                      handleFormChange("is_primary", e.target.checked)
-                    }
-                  />
                 </div>
               </Col>
 

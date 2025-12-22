@@ -213,20 +213,20 @@ class AuditLogFormatter {
    */
   async getCommunityName(communityId) {
     if (!communityId) return null;
-    
+
     const now = Date.now();
-    
+
     // Nếu cache hết hạn (5 phút), reset cache
     if (now > communityCacheExpiry) {
       communityCache = {};
       communityCacheExpiry = now + 5 * 60 * 1000;
     }
-    
+
     // Nếu đã có trong cache
     if (communityCache[communityId]) {
       return communityCache[communityId];
     }
-    
+
     // Lookup từ database
     try {
       const BaseModel = require("../models/BaseModel");
@@ -234,7 +234,7 @@ class AuditLogFormatter {
         "SELECT name FROM communities WHERE id = ?",
         [communityId]
       );
-      
+
       if (rows && rows.length > 0 && rows[0].name) {
         communityCache[communityId] = rows[0].name;
         return rows[0].name;
@@ -242,7 +242,43 @@ class AuditLogFormatter {
     } catch (error) {
       console.error("Error fetching community name:", error.message);
     }
-    
+
+    return null;
+  }
+
+  /**
+   * Lấy tên nữ tu từ ID (với cache)
+   */
+  async getSisterName(sisterId) {
+    if (!sisterId) return null;
+
+    // Dùng chung cache với community (key khác)
+    const cacheKey = `sister_${sisterId}`;
+
+    if (communityCache[cacheKey]) {
+      return communityCache[cacheKey];
+    }
+
+    try {
+      const BaseModel = require("../models/BaseModel");
+      const rows = await BaseModel.prototype.executeQuery(
+        "SELECT saint_name, birth_name FROM sisters WHERE id = ?",
+        [sisterId]
+      );
+
+      if (rows && rows.length > 0) {
+        const name =
+          [rows[0].saint_name, rows[0].birth_name].filter(Boolean).join(" ") ||
+          null;
+        if (name) {
+          communityCache[cacheKey] = name;
+          return name;
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching sister name:", error.message);
+    }
+
     return null;
   }
 
@@ -342,7 +378,7 @@ class AuditLogFormatter {
       if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
         let oldValueFormatted = this.formatValue(oldVal, key);
         let newValueFormatted = this.formatValue(newVal, key);
-        
+
         // Special handling for community_id fields - lookup community name
         if (key === "community_id" || key === "current_community_id") {
           if (oldVal) {
@@ -358,7 +394,7 @@ class AuditLogFormatter {
             }
           }
         }
-        
+
         changes.push({
           field: key,
           fieldVi: this.translateField(key),
@@ -455,7 +491,10 @@ Yêu cầu:
    * Format đầy đủ một audit log entry
    */
   async formatActivity(activity, useAI = false) {
-    const changes = await this.parseChanges(activity.old_value, activity.new_value);
+    const changes = await this.parseChanges(
+      activity.old_value,
+      activity.new_value
+    );
 
     // Lấy tên entity từ new_value hoặc old_value
     let entityName = null;
@@ -474,6 +513,18 @@ Yêu cầu:
         data.community_name ||
         data.title ||
         null;
+
+      // Nếu không có tên trực tiếp, thử lookup từ ID
+      if (!entityName) {
+        // Lookup tên nữ tu nếu có sister_id
+        if (data.sister_id) {
+          entityName = await this.getSisterName(data.sister_id);
+        }
+        // Lookup tên cộng đoàn nếu có community_id và chưa có entityName
+        if (!entityName && data.community_id) {
+          entityName = await this.getCommunityName(data.community_id);
+        }
+      }
     }
 
     // Tạo message
