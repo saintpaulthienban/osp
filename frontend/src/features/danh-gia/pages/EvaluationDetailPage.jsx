@@ -417,41 +417,6 @@ const EvaluationDetailPage = () => {
                 </Button>
               </Card.Body>
             </Card>
-
-            {/* History */}
-            <Card className="health-info-card">
-              <Card.Header className="system-header">
-                <i className="fas fa-history"></i>
-                <span>Lịch sử</span>
-              </Card.Header>
-              <Card.Body>
-                <div className="evaluation-history-item">
-                  <div className="evaluation-history-icon created">
-                    <i className="fas fa-plus-circle"></i>
-                  </div>
-                  <div className="evaluation-history-content">
-                    <div className="evaluation-history-label">Tạo mới</div>
-                    <div className="evaluation-history-date">
-                      {formatDate(evaluation.created_at)}
-                    </div>
-                  </div>
-                </div>
-                {evaluation.updated_at &&
-                  evaluation.updated_at !== evaluation.created_at && (
-                    <div className="evaluation-history-item">
-                      <div className="evaluation-history-icon updated">
-                        <i className="fas fa-edit"></i>
-                      </div>
-                      <div className="evaluation-history-content">
-                        <div className="evaluation-history-label">Cập nhật</div>
-                        <div className="evaluation-history-date">
-                          {formatDate(evaluation.updated_at)}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-              </Card.Body>
-            </Card>
           </Col>
         </Row>
       </Container>

@@ -420,34 +420,6 @@ const HealthRecordDetailPage = () => {
                 )}
               </Card.Body>
             </Card>
-
-            {/* Timestamps Card */}
-            <Card className="health-info-card">
-              <Card.Header className="system-header">
-                <i className="fas fa-clock"></i>
-                <span>Thông tin hệ thống</span>
-              </Card.Header>
-              <Card.Body>
-                <div className="health-system-info">
-                  <div className="health-system-item">
-                    <span className="label">Ngày tạo</span>
-                    <span className="value">
-                      {formatDate(healthRecord.created_at)}
-                    </span>
-                  </div>
-                  <div className="health-system-item">
-                    <span className="label">Cập nhật lần cuối</span>
-                    <span className="value">
-                      {formatDate(healthRecord.updated_at)}
-                    </span>
-                  </div>
-                  <div className="health-system-item">
-                    <span className="label">Mã hồ sơ</span>
-                    <span className="value">#{healthRecord.id}</span>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
           </Col>
         </Row>
       </Container>

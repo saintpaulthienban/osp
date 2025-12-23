@@ -956,29 +956,37 @@ const getJourneyReport = async (req, res) => {
     // Prepare monthly data
     const months = Array(12).fill(0);
     const aspirantProgress = [...months];
-    const postulantProgress = [...months];
+    const noviceProgress = [...months];
     const temporaryProgress = [...months];
 
     transitionRows.forEach((row) => {
       const monthIndex = row.month - 1;
       if (row.stage === "aspirant") aspirantProgress[monthIndex] = row.total;
-      else if (row.stage === "postulant")
-        postulantProgress[monthIndex] = row.total;
+      else if (row.stage === "novice") noviceProgress[monthIndex] = row.total;
       else if (row.stage === "temporary_vows")
         temporaryProgress[monthIndex] = row.total;
     });
 
     // Prepare stage distribution [Dự tu, Tập sinh, Khấn tạm, Khấn trọn]
+    // Frontend labels: ["Dự tu", "Tập sinh", "Khấn tạm", "Khấn trọn"]
+    // DB stages: aspirant, novice, temporary_vows, perpetual_vows
     const stageMap = {
-      aspirant: 0,
-      postulant: 1,
-      temporary_vows: 2,
-      perpetual_vows: 3,
+      aspirant: 0, // Dự tu
+      novice: 1, // Tập sinh
+      temporary_vows: 2, // Khấn tạm
+      perpetual_vows: 3, // Khấn trọn
     };
     const stageDistribution = [0, 0, 0, 0];
+    const stageTotals = {
+      aspirant: 0,
+      novice: 0,
+      temporary_vows: 0,
+      perpetual_vows: 0,
+    };
     stageRows.forEach((row) => {
       if (stageMap[row.stage] !== undefined) {
         stageDistribution[stageMap[row.stage]] = row.total;
+        stageTotals[row.stage] = row.total;
       }
     });
 
@@ -992,35 +1000,112 @@ const getJourneyReport = async (req, res) => {
       GROUP BY stage
     `);
 
+    // Convert duration to months/years
+    const durationMap = {};
+    durationRows.forEach((row) => {
+      durationMap[row.stage] = Math.round((row.avg_days || 0) / 30); // months
+    });
+
+    // Ensure all stages have a value
+    [
+      "aspirant",
+      "postulant",
+      "novice",
+      "temporary_vows",
+      "perpetual_vows",
+    ].forEach((stage) => {
+      if (!durationMap[stage]) durationMap[stage] = 0;
+    });
+
+    // Upcoming events - sisters approaching stage transition
+    const upcomingEvents = await VocationJourneyModel.executeQuery(`
+      SELECT 
+        vj.id,
+        vj.sister_id,
+        CONCAT(COALESCE(s.saint_name, ''), ' ', COALESCE(s.birth_name, '')) as sister_name,
+        vj.stage as current_stage,
+        vj.start_date,
+        vj.end_date as expected_date,
+        CASE vj.stage
+          WHEN 'inquiry' THEN 'Chuyển Dự tu'
+          WHEN 'aspirant' THEN 'Chuyển Tiền tập'
+          WHEN 'postulant' THEN 'Chuyển Tập sinh'
+          WHEN 'novice' THEN 'Khấn tạm'
+          WHEN 'temporary_vows' THEN 'Khấn trọn'
+          ELSE 'Tiếp tục'
+        END as event_name,
+        CASE vj.stage
+          WHEN 'inquiry' THEN 'Tìm hiểu'
+          WHEN 'aspirant' THEN 'Dự tu'
+          WHEN 'postulant' THEN 'Tiền tập'
+          WHEN 'novice' THEN 'Tập sinh'
+          WHEN 'temporary_vows' THEN 'Khấn tạm'
+          WHEN 'perpetual_vows' THEN 'Khấn trọn'
+          ELSE vj.stage
+        END as current_stage_label,
+        'pending' as status
+      FROM vocation_journey vj
+      INNER JOIN (
+        SELECT sister_id, MAX(start_date) as max_date
+        FROM vocation_journey GROUP BY sister_id
+      ) latest ON vj.sister_id = latest.sister_id AND vj.start_date = latest.max_date
+      LEFT JOIN sisters s ON vj.sister_id = s.id
+      WHERE vj.stage NOT IN ('perpetual_vows', 'left')
+      ORDER BY vj.start_date DESC
+      LIMIT 10
+    `);
+
     // Recent transitions
     const recentTransitions = await VocationJourneyModel.executeQuery(`
       SELECT 
         vj.id, vj.stage, vj.start_date,
-        s.birth_name, s.code as sister_code
+        CONCAT(COALESCE(s.saint_name, ''), ' ', COALESCE(s.birth_name, '')) as sister_name,
+        s.code as sister_code
       FROM vocation_journey vj
       JOIN sisters s ON s.id = vj.sister_id
       ORDER BY vj.start_date DESC
       LIMIT 10
     `);
 
+    // Calculate total average duration (sum of all stages)
+    const totalAvgMonths = Object.values(durationMap).reduce(
+      (sum, m) => sum + m,
+      0
+    );
+
     return res.status(200).json({
       totalInJourney: stageRows.reduce((sum, r) => sum + r.total, 0),
+      totalAspirant: stageTotals.aspirant || 0,
+      totalPostulant: stageTotals.novice || 0, // Tập sinh = novice
+      totalTemporary: stageTotals.temporary_vows || 0,
+      totalPerpetual: stageTotals.perpetual_vows || 0,
       stageDistribution,
       aspirantProgress,
-      postulantProgress,
+      postulantProgress: noviceProgress, // Rename for frontend compatibility
       temporaryProgress,
       stageBreakdown: stageRows.map((row) => ({
         stage: row.stage,
         count: row.total,
         percentage: 0, // Will be calculated on frontend
       })),
-      averageDuration: durationRows.map((row) => ({
-        stage: row.stage,
-        days: Math.round(row.avg_days || 0),
+      averageDuration: {
+        aspirant: durationMap.aspirant || 0,
+        postulant: durationMap.novice || 0, // Tập sinh duration
+        temporary: Math.round((durationMap.temporary_vows || 0) / 12), // Convert to years
+        total: Math.round(totalAvgMonths / 12), // Convert to years
+      },
+      upcomingEvents: upcomingEvents.map((e) => ({
+        id: e.id,
+        sister_id: e.sister_id,
+        sister_name: e.sister_name?.trim() || `Nữ tu #${e.sister_id}`,
+        current_stage: e.current_stage_label,
+        event_name: e.event_name,
+        expected_date: e.expected_date || e.start_date,
+        status: e.status,
       })),
       recentTransitions: recentTransitions.map((t) => ({
         id: t.id,
-        sisterName: t.birth_name,
+        sisterName: t.sister_name?.trim() || t.birth_name,
         sisterCode: t.sister_code,
         stage: t.stage,
         date: t.start_date,
@@ -1040,21 +1125,29 @@ const fetchHealthStats = async () => {
   try {
     const rows = await SisterModel.executeQuery(`
       SELECT 
-        hr.health_status,
+        hr.general_health,
         COUNT(*) as total
       FROM health_records hr
       INNER JOIN (
-        SELECT sister_id, MAX(check_date) as max_date
+        SELECT sister_id, MAX(checkup_date) as max_date
         FROM health_records GROUP BY sister_id
-      ) latest ON hr.sister_id = latest.sister_id AND hr.check_date = latest.max_date
-      GROUP BY hr.health_status
+      ) latest ON hr.sister_id = latest.sister_id AND hr.checkup_date = latest.max_date
+      GROUP BY hr.general_health
     `);
 
-    const statusMap = { good: 0, fair: 1, moderate: 2, poor: 3 };
-    const byStatus = [0, 0, 0, 0];
+    // Map database values: good, average, weak to array indices
+    const statusMap = { good: 0, average: 1, weak: 2 };
+    const byStatus = [0, 0, 0, 0]; // [good, fair/average, moderate, poor/weak]
     rows.forEach((row) => {
-      if (statusMap[row.health_status] !== undefined) {
-        byStatus[statusMap[row.health_status]] = row.total;
+      if (statusMap[row.general_health] !== undefined) {
+        const idx = statusMap[row.general_health];
+        byStatus[idx] = row.total;
+        // Map average to fair position, weak to moderate position for compatibility
+        if (row.general_health === "average") {
+          byStatus[1] = row.total; // fair
+        } else if (row.general_health === "weak") {
+          byStatus[2] = row.total; // moderate (or we can put it in poor position [3])
+        }
       }
     });
 
@@ -1074,7 +1167,7 @@ const getHealthReport = async (req, res) => {
     // Total checkups this year
     const checkupRows = await SisterModel.executeQuery(`
       SELECT COUNT(*) as total FROM health_records
-      WHERE YEAR(check_date) = YEAR(CURDATE())
+      WHERE YEAR(checkup_date) = YEAR(CURDATE())
     `);
 
     // Sisters needing monitoring (poor or moderate health)
@@ -1082,10 +1175,10 @@ const getHealthReport = async (req, res) => {
       SELECT COUNT(DISTINCT hr.sister_id) as total
       FROM health_records hr
       INNER JOIN (
-        SELECT sister_id, MAX(check_date) as max_date
+        SELECT sister_id, MAX(checkup_date) as max_date
         FROM health_records GROUP BY sister_id
-      ) latest ON hr.sister_id = latest.sister_id AND hr.check_date = latest.max_date
-      WHERE hr.health_status IN ('poor', 'moderate')
+      ) latest ON hr.sister_id = latest.sister_id AND hr.checkup_date = latest.max_date
+      WHERE hr.general_health IN ('weak', 'average')
     `);
 
     // Common conditions/diseases
@@ -1103,16 +1196,16 @@ const getHealthReport = async (req, res) => {
     // Monthly checkup trend
     const monthlyCheckups = await SisterModel.executeQuery(`
       SELECT 
-        MONTH(check_date) as month,
+        MONTH(checkup_date) as month,
         COUNT(*) as total
       FROM health_records
-      WHERE YEAR(check_date) = YEAR(CURDATE())
-      GROUP BY MONTH(check_date)
+      WHERE YEAR(checkup_date) = YEAR(CURDATE())
+      GROUP BY MONTH(checkup_date)
       ORDER BY month
     `);
 
     // Sisters on leave/absence
-    const absenceRows = await SisterModel.executeQuery(`
+    const absenceRows = await DepartureRecordModel.executeQuery(`
       SELECT COUNT(*) as total FROM departure_records
       WHERE return_date IS NULL OR return_date >= CURDATE()
     `);
@@ -1122,19 +1215,66 @@ const getHealthReport = async (req, res) => {
       SELECT 
         c.id, c.name,
         COUNT(DISTINCT hr.sister_id) as totalChecked,
-        SUM(CASE WHEN hr.health_status = 'good' THEN 1 ELSE 0 END) as good,
-        SUM(CASE WHEN hr.health_status = 'fair' THEN 1 ELSE 0 END) as fair,
-        SUM(CASE WHEN hr.health_status IN ('moderate', 'poor') THEN 1 ELSE 0 END) as needAttention
+        SUM(CASE WHEN hr.general_health = 'good' THEN 1 ELSE 0 END) as good,
+        SUM(CASE WHEN hr.general_health = 'average' THEN 1 ELSE 0 END) as fair,
+        SUM(CASE WHEN hr.general_health = 'weak' THEN 1 ELSE 0 END) as needAttention
       FROM communities c
       LEFT JOIN community_assignments ca ON ca.community_id = c.id 
         AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())
       LEFT JOIN health_records hr ON hr.sister_id = ca.sister_id
       LEFT JOIN (
-        SELECT sister_id, MAX(check_date) as max_date
+        SELECT sister_id, MAX(checkup_date) as max_date
         FROM health_records GROUP BY sister_id
-      ) latest ON hr.sister_id = latest.sister_id AND hr.check_date = latest.max_date
+      ) latest ON hr.sister_id = latest.sister_id AND hr.checkup_date = latest.max_date
       GROUP BY c.id, c.name
       ORDER BY c.name
+    `);
+
+    // Recent health checkups (last 10)
+    const recentCheckups = await SisterModel.executeQuery(`
+      SELECT 
+        hr.id,
+        hr.sister_id,
+        CONCAT(COALESCE(s.saint_name, ''), ' ', COALESCE(s.birth_name, '')) as sister_name,
+        hr.checkup_date,
+        hr.checkup_place as facility,
+        hr.diagnosis,
+        hr.general_health,
+        CASE hr.general_health
+          WHEN 'good' THEN 'Tốt'
+          WHEN 'average' THEN 'Trung bình'
+          WHEN 'weak' THEN 'Yếu'
+          ELSE hr.general_health
+        END as health_status_label
+      FROM health_records hr
+      LEFT JOIN sisters s ON hr.sister_id = s.id
+      ORDER BY hr.checkup_date DESC
+      LIMIT 10
+    `);
+
+    // Currently away sisters
+    const currentDepartures = await DepartureRecordModel.executeQuery(`
+      SELECT 
+        d.id,
+        d.sister_id,
+        CONCAT(COALESCE(s.saint_name, ''), ' ', COALESCE(s.birth_name, '')) as sister_name,
+        d.type,
+        CASE d.type
+          WHEN 'temporary' THEN 'Tạm thời'
+          WHEN 'medical' THEN 'Khám chữa bệnh'
+          WHEN 'study' THEN 'Học tập'
+          WHEN 'mission' THEN 'Sứ vụ'
+          ELSE COALESCE(d.type, 'Khác')
+        END as type_label,
+        d.departure_date,
+        d.expected_return_date,
+        d.destination,
+        d.contact_phone
+      FROM departure_records d
+      LEFT JOIN sisters s ON d.sister_id = s.id
+      WHERE d.return_date IS NULL OR d.return_date >= CURDATE()
+      ORDER BY d.departure_date DESC
+      LIMIT 10
     `);
 
     const monthlyData = Array(12).fill(0);
@@ -1147,7 +1287,7 @@ const getHealthReport = async (req, res) => {
       excellentHealth: healthStats.byStatus[0] || 0,
       needMonitoring: monitoringRows[0]?.total || 0,
       totalCheckups: checkupRows[0]?.total || 0,
-      onLeave: absenceRows[0]?.total || 0,
+      currentlyAway: absenceRows[0]?.total || 0,
       commonDiseases: conditionRows,
       monthlyCheckups: monthlyData,
       communityHealth: communityHealth.map((c) => ({
@@ -1157,6 +1297,27 @@ const getHealthReport = async (req, res) => {
         good: c.good || 0,
         fair: c.fair || 0,
         needAttention: c.needAttention || 0,
+      })),
+      recentCheckups: recentCheckups.map((c) => ({
+        id: c.id,
+        sister_id: c.sister_id,
+        sister_name: c.sister_name?.trim() || `Nữ tu #${c.sister_id}`,
+        check_date: c.checkup_date,
+        facility: c.facility || "--",
+        diagnosis: c.diagnosis || "--",
+        health_status: c.general_health,
+        health_status_label: c.health_status_label,
+      })),
+      currentDepartures: currentDepartures.map((d) => ({
+        id: d.id,
+        sister_id: d.sister_id,
+        sister_name: d.sister_name?.trim() || `Nữ tu #${d.sister_id}`,
+        type: d.type,
+        type_label: d.type_label,
+        departure_date: d.departure_date,
+        expected_return_date: d.expected_return_date,
+        destination: d.destination || "--",
+        contact_phone: d.contact_phone || "--",
       })),
     });
   } catch (error) {

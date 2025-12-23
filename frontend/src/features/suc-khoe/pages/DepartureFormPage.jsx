@@ -241,7 +241,7 @@ const DepartureFormPage = () => {
                 <span>Thông tin Đi vắng</span>
               </Card.Header>
               <Card.Body>
-                <Row className="g-3">
+                <Row className="g-3" style={{ paddingBottom: "200px" }}>
                   <Col md={6}>
                     <SearchableSelect
                       label="Nữ tu"
@@ -255,10 +255,8 @@ const DepartureFormPage = () => {
                       options={(sisters || []).map((sister) => ({
                         value: sister.id,
                         label:
-                          `${
-                            sister.saint_name ? `${sister.saint_name} - ` : ""
-                          }${sister.birth_name || ""}${
-                            sister.code ? ` (${sister.code})` : ""
+                          `${sister.saint_name || ""} ${
+                            sister.birth_name || ""
                           }`.trim() || `Nữ tu #${sister.id}`,
                       }))}
                     />
@@ -349,10 +347,8 @@ const DepartureFormPage = () => {
                       options={(sisters || []).map((sister) => ({
                         value: sister.id,
                         label:
-                          `${
-                            sister.saint_name ? `${sister.saint_name} - ` : ""
-                          }${sister.birth_name || ""}${
-                            sister.code ? ` (${sister.code})` : ""
+                          `${sister.saint_name || ""} ${
+                            sister.birth_name || ""
                           }`.trim() || `Nữ tu #${sister.id}`,
                       }))}
                     />

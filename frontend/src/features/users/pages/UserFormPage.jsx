@@ -43,6 +43,14 @@ const UserFormPage = () => {
     { value: "active", label: "Đang hoạt động" },
     { value: "inactive", label: "Đã khóa" },
   ]);
+  const [userRoles] = useState([
+    { value: "admin", label: "Quản trị viên" },
+    { value: "superior_general", label: "Tổng phụ trách" },
+    { value: "superior_provincial", label: "Tỉnh phụ trách" },
+    { value: "superior_community", label: "Cộng đoàn phụ trách" },
+    { value: "secretary", label: "Thư ký" },
+    { value: "viewer", label: "Người xem" },
+  ]);
   const [allPermissions, setAllPermissions] = useState({});
   const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [allCommunities, setAllCommunities] = useState([]);
@@ -65,6 +73,7 @@ const UserFormPage = () => {
     full_name: "",
     email: "",
     phone: "",
+    role: "viewer",
     status: "active",
     avatar: "",
   });
@@ -858,6 +867,33 @@ const UserFormPage = () => {
                 <Row className="g-3">
                   <Col xs={12}>
                     <Form.Group>
+                      <Form.Label>
+                        Vai trò{" "}
+                        <span className="text-muted small">(Tùy chọn)</span>
+                      </Form.Label>
+                      <Form.Select
+                        name="role"
+                        value={values.role}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                      >
+                        <option value="">-- Chọn vai trò --</option>
+                        {userRoles.map((role) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      {errors.role && touched.role && (
+                        <div className="text-danger small mt-1">
+                          {errors.role}
+                        </div>
+                      )}
+                    </Form.Group>
+                  </Col>
+
+                  <Col xs={12}>
+                    <Form.Group>
                       <Form.Label>Trạng thái</Form.Label>
                       <Form.Select
                         name="status"
@@ -919,6 +955,10 @@ const UserFormPage = () => {
                     <li>Các trường có dấu (*) là bắt buộc</li>
                     <li>Tên đăng nhập không thể thay đổi sau khi tạo</li>
                     <li>Mật khẩu phải có ít nhất 6 ký tự</li>
+                    <li>
+                      <strong>Phân quyền thủ công:</strong> Chọn cộng đoàn và
+                      quyền cụ thể bên dưới
+                    </li>
                     {!isEditMode && (
                       <li>Email sẽ được dùng để gửi thông tin đăng nhập</li>
                     )}

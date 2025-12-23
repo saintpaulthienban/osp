@@ -158,7 +158,7 @@ const EvaluationListPage = () => {
         case "evaluation_type":
           return item.evaluation_type || "";
         case "evaluator":
-          return item.evaluator || "";
+          return item.evaluator_name || item.evaluator || "";
         case "overall_rating":
           return item.overall_rating || 0;
         case "period":
@@ -409,7 +409,11 @@ const EvaluationListPage = () => {
                           </td>
                           <td>{evaluation.period || "-"}</td>
                           <td>{typeLabel(evaluation.evaluation_type)}</td>
-                          <td>{evaluation.evaluator || "-"}</td>
+                          <td>
+                            {evaluation.evaluator_name ||
+                              evaluation.evaluator ||
+                              "-"}
+                          </td>
                           <td>
                             <Badge bg={ratingColor}>{rating}/10</Badge>
                           </td>

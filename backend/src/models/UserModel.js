@@ -10,6 +10,7 @@ class UserModel extends BaseModel {
       "full_name",
       "phone",
       "avatar",
+      // "role", // Removed role field as it doesn't exist in DB
       "is_admin",
       "last_login",
       "is_active",

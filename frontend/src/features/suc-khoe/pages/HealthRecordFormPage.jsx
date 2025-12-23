@@ -254,10 +254,8 @@ const HealthRecordFormPage = () => {
                       options={(sisters || []).map((sister) => ({
                         value: sister.id,
                         label:
-                          `${
-                            sister.saint_name ? `${sister.saint_name} - ` : ""
-                          }${sister.birth_name || ""}${
-                            sister.code ? ` (${sister.code})` : ""
+                          `${sister.saint_name || ""} ${
+                            sister.birth_name || ""
                           }`.trim() || `Nữ tu #${sister.id}`,
                       }))}
                     />

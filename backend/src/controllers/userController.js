@@ -186,10 +186,7 @@ const createUser = async (req, res) => {
       errors.phone = "Số điện thoại không hợp lệ";
     }
 
-    // Validate role
-    if (!role) {
-      errors.role = "Vai trò là bắt buộc";
-    }
+    // Role is optional - permissions are assigned manually
 
     // If validation errors exist, return them
     if (Object.keys(errors).length > 0) {
@@ -231,7 +228,7 @@ const createUser = async (req, res) => {
       username: username.trim(),
       password: hashedPassword,
       email: email.trim(),
-      role,
+      // role, // Removed role field as it doesn't exist in DB
       full_name: full_name.trim(),
       phone: phone ? phone.trim() : null,
       avatar: avatar || null,
@@ -249,9 +246,11 @@ const createUser = async (req, res) => {
     });
   } catch (error) {
     console.error("createUser error:", error.message);
+    console.error("createUser error stack:", error.stack);
     return res.status(500).json({
       success: false,
       message: "Lỗi server khi tạo người dùng",
+      error: error.message,
     });
   }
 };
