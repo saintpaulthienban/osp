@@ -64,6 +64,40 @@ const ensureEntitiesExist = async (sisterId, communityId) => {
   return { sister, community };
 };
 
+/**
+ * Sync sisters.current_community_id based on community_assignments
+ * Should be called after any change to community_assignments
+ */
+const syncCurrentCommunityId = async (sisterId) => {
+  try {
+    // Get current assignment (end_date IS NULL or end_date >= today)
+    const currentAssignment =
+      await CommunityAssignmentModel.getCurrentAssignment(sisterId);
+
+    if (currentAssignment) {
+      // Update sister's current_community_id
+      await SisterModel.update(sisterId, {
+        current_community_id: currentAssignment.community_id,
+      });
+      console.log(
+        `[Sync] Sister ${sisterId} -> Community ${currentAssignment.community_id}`
+      );
+    } else {
+      // No current assignment, clear the field
+      await SisterModel.executeQuery(
+        "UPDATE sisters SET current_community_id = NULL WHERE id = ?",
+        [sisterId]
+      );
+      console.log(`[Sync] Sister ${sisterId} -> No community`);
+    }
+  } catch (error) {
+    console.error(
+      `[Sync] Error syncing current_community_id for sister ${sisterId}:`,
+      error.message
+    );
+  }
+};
+
 const assignSisterToCommunity = async (req, res) => {
   try {
     if (!ensurePermission(req, res, editorRoles)) {
@@ -118,6 +152,9 @@ const assignSisterToCommunity = async (req, res) => {
     const created = await CommunityAssignmentModel.create(payload);
     await logAudit(req, "CREATE", created.id, null, created);
 
+    // Sync current_community_id
+    await syncCurrentCommunityId(sisterId);
+
     return res.status(201).json({ assignment: created });
   } catch (error) {
     console.error("assignSisterToCommunity error:", error.message);
@@ -160,6 +197,12 @@ const updateAssignment = async (req, res) => {
     const updated = await CommunityAssignmentModel.update(id, payload);
     await logAudit(req, "UPDATE", id, assignment, updated);
 
+    // Sync current_community_id for affected sister(s)
+    await syncCurrentCommunityId(assignment.sister_id);
+    if (payload.sister_id && payload.sister_id !== assignment.sister_id) {
+      await syncCurrentCommunityId(payload.sister_id);
+    }
+
     return res.status(200).json({ assignment: updated });
   } catch (error) {
     console.error("updateAssignment error:", error.message);
@@ -190,6 +233,9 @@ const endAssignment = async (req, res) => {
       end_date: finalDate,
     });
     await logAudit(req, "UPDATE", id, assignment, updated);
+
+    // Sync current_community_id after ending assignment
+    await syncCurrentCommunityId(assignment.sister_id);
 
     return res.status(200).json({ assignment: updated });
   } catch (error) {

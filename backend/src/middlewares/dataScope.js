@@ -61,10 +61,23 @@ const attachDataScope = async (req, res, next) => {
         const communityIds = await userCommunityModel.getUserCommunityIds(
           userId
         );
-        scope = {
-          type: "community",
-          community_ids: communityIds,
-        };
+
+        // Check if user has access to ALL communities
+        const db = require("../config/database");
+        const [allCommunities] = await db.query(
+          "SELECT COUNT(*) as total FROM communities"
+        );
+        const totalCommunities = allCommunities[0]?.total || 0;
+
+        // If user has all communities assigned, treat as 'all' scope
+        if (communityIds.length >= totalCommunities && totalCommunities > 0) {
+          scope = { type: "all" };
+        } else {
+          scope = {
+            type: "community",
+            community_ids: communityIds,
+          };
+        }
         break;
 
       case "own":
@@ -79,10 +92,26 @@ const attachDataScope = async (req, res, next) => {
         // Default to community scope
         const defaultCommunityIds =
           await userCommunityModel.getUserCommunityIds(userId);
-        scope = {
-          type: "community",
-          community_ids: defaultCommunityIds,
-        };
+
+        // Check if user has access to ALL communities
+        const dbDefault = require("../config/database");
+        const [allCommsDefault] = await dbDefault.query(
+          "SELECT COUNT(*) as total FROM communities"
+        );
+        const totalCommsDefault = allCommsDefault[0]?.total || 0;
+
+        // If user has all communities assigned, treat as 'all' scope
+        if (
+          defaultCommunityIds.length >= totalCommsDefault &&
+          totalCommsDefault > 0
+        ) {
+          scope = { type: "all" };
+        } else {
+          scope = {
+            type: "community",
+            community_ids: defaultCommunityIds,
+          };
+        }
     }
 
     // Cache the result

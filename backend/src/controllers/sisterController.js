@@ -207,13 +207,11 @@ const getAllSisters = async (req, res) => {
          FROM vocation_journey vj1
          INNER JOIN (
            SELECT sister_id, 
-                  MAX(CASE WHEN end_date IS NULL THEN 1 ELSE 0 END) as has_current,
-                  MAX(start_date) as max_start_date,
-                  MAX(id) as max_id
+                  MAX(CASE WHEN end_date IS NULL THEN 999999999 ELSE UNIX_TIMESTAMP(start_date) END) as priority_score
            FROM vocation_journey
            GROUP BY sister_id
          ) vj2 ON vj1.sister_id = vj2.sister_id 
-              AND vj1.id = vj2.max_id
+              AND (CASE WHEN vj1.end_date IS NULL THEN 999999999 ELSE UNIX_TIMESTAMP(vj1.start_date) END) = vj2.priority_score
        ) vj_latest ON s.id = vj_latest.sister_id
        LEFT JOIN communities c_journey ON vj_latest.community_id = c_journey.id
        ${whereClause} 
