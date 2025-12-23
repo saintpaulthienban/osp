@@ -16,7 +16,7 @@ const DashboardPage = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  }, []);
+  }, []); // Empty dependency array - only run once on mount
 
   const fetchDashboardData = async () => {
     try {

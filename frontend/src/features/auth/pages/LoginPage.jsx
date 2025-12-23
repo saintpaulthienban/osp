@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import { useAuth } from "@context";
 import LoginForm from "../components/LoginForm";
 import "./LoginPage.css";
@@ -24,19 +25,27 @@ const LoginPage = () => {
     console.log("📡 Login result:", result);
 
     if (result.success) {
-      console.log("✅ Login successful, navigating to dashboard");
-      navigate("/dashboard");
+      console.log("✅ Login successful, navigating to posts page");
+      toast.success("Đăng nhập thành công!");
+      navigate("/thong-tin"); // Navigate to Posts (Thông tin) page instead of dashboard
     } else {
       console.log("❌ Login failed:", result);
       // Xử lý lỗi từ result
       if (result.errors && Object.keys(result.errors).length > 0) {
         console.log("Setting field errors:", result.errors);
         setFieldErrors(result.errors);
+        // Show toast for field errors only (first error)
+        const firstError = Object.values(result.errors)[0];
+        setError(firstError);
+        toast.error(firstError);
       } else {
-        // Nếu không có field errors, clear nó
+        // Nếu không có field errors, clear nó và show general error
         setFieldErrors({});
+        const errorMsg =
+          result.error || "Đăng nhập thất bại. Vui lòng thử lại.";
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
-      setError(result.error || "Đăng nhập thất bại. Vui lòng thử lại.");
     }
 
     setLoading(false);

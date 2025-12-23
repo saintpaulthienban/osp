@@ -24,7 +24,12 @@ const buildCorsOptions = () => {
 
   return {
     origin: (origin, callback) => {
-      if (!origin || allowAllOrigins) {
+      // Allow requests with no origin (mobile apps, Postman, server-to-server)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowAllOrigins) {
         return callback(null, true);
       }
 
@@ -32,6 +37,7 @@ const buildCorsOptions = () => {
         return callback(null, true);
       }
 
+      console.warn(`⚠️ CORS blocked request from origin: ${origin}`);
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -72,9 +78,13 @@ const buildHelmetConfig = () => {
 
 const generalRateLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES_MS,
-  max: process.env.NODE_ENV === "production" ? 100 : 1000, // Higher limit for development
+  max: process.env.NODE_ENV === "production" ? 500 : 1000, // Increased limit for production Railway deployment
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting for health checks
+    return req.path === "/" || req.path === "/healthz";
+  },
   message: {
     success: false,
     message: "Too many requests, please try again later.",
