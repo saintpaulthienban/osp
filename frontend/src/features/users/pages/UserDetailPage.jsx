@@ -15,6 +15,7 @@ import {
 } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useAuth } from "@context/AuthContext";
 import { userService } from "@services";
 import { formatDate } from "@utils";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
@@ -24,6 +25,7 @@ import "./UserDetailPage.css";
 const UserDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user: currentUser, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -194,13 +196,29 @@ const UserDetailPage = () => {
     const newStatus = user.status === "active" ? "inactive" : "active";
     const action = newStatus === "active" ? "mở khóa" : "khóa";
     const actionPast = newStatus === "active" ? "mở khóa" : "khóa";
+    
+    // Kiểm tra xem có đang khóa chính user hiện tại không
+    const isLockingSelf = currentUser && currentUser.id === parseInt(id) && newStatus === "inactive";
+    
+    const confirmMessage = isLockingSelf 
+      ? `Bạn đang khóa chính tài khoản của mình! Bạn sẽ bị đăng xuất ngay lập tức. Bạn có chắc chắn muốn ${action} tài khoản này?`
+      : `Bạn có chắc chắn muốn ${action} tài khoản này?`;
 
-    if (window.confirm(`Bạn có chắc chắn muốn ${action} tài khoản này?`)) {
+    if (window.confirm(confirmMessage)) {
       try {
         const response = await userService.updateStatus(id, newStatus);
         if (response.success) {
           toast.success(`Đã ${actionPast} tài khoản thành công`);
-          fetchUserDetail();
+          
+          // Nếu khóa chính mình, đăng xuất ngay lập tức
+          if (isLockingSelf) {
+            setTimeout(() => {
+              logout();
+              navigate("/login");
+            }, 1000);
+          } else {
+            fetchUserDetail();
+          }
         } else {
           toast.error(response.error || `Không thể ${action} tài khoản`);
         }
