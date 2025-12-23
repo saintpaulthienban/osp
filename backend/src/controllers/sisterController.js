@@ -192,7 +192,7 @@ const getAllSisters = async (req, res) => {
     const total = totalRows[0] ? totalRows[0].total : 0;
 
     // JOIN with communities and vocation_journey to get current stage and community
-    // Ưu tiên giai đoạn chưa kết thúc (end_date IS NULL), sau đó lấy giai đoạn mới nhất
+    // Ưu tiên giai đoạn chưa kết thúc (end_date IS NULL), sau đó lấy giai đoạn mới nhất theo start_date
     const rows = await SisterModel.executeQuery(
       `SELECT DISTINCT s.*, 
               c.name AS current_community_name,
@@ -205,13 +205,16 @@ const getAllSisters = async (req, res) => {
        LEFT JOIN (
          SELECT vj1.sister_id, vj1.stage, vj1.community_id
          FROM vocation_journey vj1
-         INNER JOIN (
-           SELECT sister_id, 
-                  MAX(CASE WHEN end_date IS NULL THEN 999999999 ELSE UNIX_TIMESTAMP(start_date) END) as priority_score
-           FROM vocation_journey
-           GROUP BY sister_id
-         ) vj2 ON vj1.sister_id = vj2.sister_id 
-              AND (CASE WHEN vj1.end_date IS NULL THEN 999999999 ELSE UNIX_TIMESTAMP(vj1.start_date) END) = vj2.priority_score
+         WHERE vj1.id = (
+           SELECT vj2.id 
+           FROM vocation_journey vj2 
+           WHERE vj2.sister_id = vj1.sister_id 
+           ORDER BY 
+             CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+             vj2.start_date DESC,
+             vj2.id DESC
+           LIMIT 1
+         )
        ) vj_latest ON s.id = vj_latest.sister_id
        LEFT JOIN communities c_journey ON vj_latest.community_id = c_journey.id
        ${whereClause} 
