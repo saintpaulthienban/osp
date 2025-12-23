@@ -24,7 +24,7 @@ const authenticateToken = async (req, res, next) => {
     // Get user details including permissions and scope info
     const db = require("../config/database");
     const [users] = await db.query(
-      `SELECT id, username, data_scope, is_admin, is_super_admin 
+      `SELECT id, username, data_scope, is_admin, is_super_admin, is_active 
        FROM users WHERE id = ?`,
       [decoded.id]
     );
@@ -34,6 +34,16 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const user = users[0];
+
+    // Check if account is locked
+    if (!user.is_active) {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_LOCKED",
+        message:
+          "Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.",
+      });
+    }
 
     // Get user permissions
     const permissions = await UserModel.getPermissions(decoded.id);

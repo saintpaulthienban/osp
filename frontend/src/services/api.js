@@ -83,7 +83,17 @@ api.interceptors.response.use(
           break;
 
         case 403:
-          toast.error("Bạn không có quyền thực hiện thao tác này.");
+          // Check if account is locked
+          if (data.code === "ACCOUNT_LOCKED") {
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+            toast.error(data.message || "Tài khoản của bạn đã bị khóa.");
+            if (!window.location.pathname.includes("/login")) {
+              window.location.href = "/login";
+            }
+          } else {
+            toast.error("Bạn không có quyền thực hiện thao tác này.");
+          }
           break;
 
         case 404:
