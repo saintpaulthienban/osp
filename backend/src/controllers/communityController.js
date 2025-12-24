@@ -411,7 +411,7 @@ const addMember = async (req, res) => {
     // Get file URL if uploaded
     let decision_file_url = null;
     if (req.file) {
-      const uploadResult = await uploadToFirebase(req.file, 'decisions');
+      const uploadResult = await uploadToFirebase(req.file, "decisions");
       decision_file_url = uploadResult.url;
     }
 
@@ -543,7 +543,7 @@ const updateMemberRole = async (req, res) => {
 
     // Get file URL if uploaded
     if (req.file) {
-      const uploadResult = await uploadToFirebase(req.file, 'decisions');
+      const uploadResult = await uploadToFirebase(req.file, "decisions");
       updateData.decision_file_url = uploadResult.url;
     }
 

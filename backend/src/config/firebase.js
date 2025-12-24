@@ -13,12 +13,16 @@ const initializeFirebase = () => {
 
   // Kiểm tra xem biến môi trường có tồn tại không
   if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-    console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT environment variable is missing - Firebase storage disabled');
+    console.warn(
+      "⚠️ FIREBASE_SERVICE_ACCOUNT environment variable is missing - Firebase storage disabled"
+    );
     return null;
   }
 
   if (!process.env.FIREBASE_STORAGE_BUCKET) {
-    console.warn('⚠️ FIREBASE_STORAGE_BUCKET environment variable is missing - Firebase storage disabled');
+    console.warn(
+      "⚠️ FIREBASE_STORAGE_BUCKET environment variable is missing - Firebase storage disabled"
+    );
     return null;
   }
 
@@ -28,18 +32,18 @@ const initializeFirebase = () => {
 
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET 
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
 
     bucket = admin.storage().bucket();
     initialized = true;
-    
-    console.log('✅ Firebase Admin initialized successfully');
+
+    console.log("✅ Firebase Admin initialized successfully");
     console.log(`📦 Storage bucket: ${process.env.FIREBASE_STORAGE_BUCKET}`);
-    
+
     return bucket;
   } catch (error) {
-    console.error('❌ Firebase initialization error:', error.message);
+    console.error("❌ Firebase initialization error:", error.message);
     return null;
   }
 };

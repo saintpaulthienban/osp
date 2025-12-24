@@ -90,9 +90,11 @@ const createPost = async (req, res) => {
     // Handle file uploads to Firebase
     let attachments = [];
     if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map(file => uploadToFirebase(file, 'posts'));
+      const uploadPromises = req.files.map((file) =>
+        uploadToFirebase(file, "posts")
+      );
       const uploadResults = await Promise.all(uploadPromises);
-      
+
       attachments = uploadResults.map((result, index) => ({
         name: result.originalName,
         path: result.url,
@@ -179,9 +181,11 @@ const updatePost = async (req, res) => {
 
     // Add new uploads to Firebase
     if (req.files && req.files.length > 0) {
-      const uploadPromises = req.files.map(file => uploadToFirebase(file, 'posts'));
+      const uploadPromises = req.files.map((file) =>
+        uploadToFirebase(file, "posts")
+      );
       const uploadResults = await Promise.all(uploadPromises);
-      
+
       const newFiles = uploadResults.map((result, index) => ({
         name: result.originalName,
         path: result.url,

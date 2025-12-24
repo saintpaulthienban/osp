@@ -315,19 +315,19 @@ const createSister = async (req, res) => {
 
     // Convert date fields from ISO format to MySQL DATE format (YYYY-MM-DD)
     const dateFields = [
-      'date_of_birth',
-      'id_card_date',
-      'baptism_date',
-      'confirmation_date',
-      'first_communion_date'
+      "date_of_birth",
+      "id_card_date",
+      "baptism_date",
+      "confirmation_date",
+      "first_communion_date",
     ];
-    
-    dateFields.forEach(field => {
+
+    dateFields.forEach((field) => {
       if (payload[field]) {
         // Convert ISO date string to YYYY-MM-DD format
         const date = new Date(payload[field]);
         if (!isNaN(date.getTime())) {
-          payload[field] = date.toISOString().split('T')[0];
+          payload[field] = date.toISOString().split("T")[0];
         }
       }
     });
@@ -422,19 +422,19 @@ const updateSister = async (req, res) => {
 
     // Convert date fields from ISO format to MySQL DATE format (YYYY-MM-DD)
     const dateFields = [
-      'date_of_birth',
-      'id_card_date',
-      'baptism_date',
-      'confirmation_date',
-      'first_communion_date'
+      "date_of_birth",
+      "id_card_date",
+      "baptism_date",
+      "confirmation_date",
+      "first_communion_date",
     ];
-    
-    dateFields.forEach(field => {
+
+    dateFields.forEach((field) => {
       if (updateData[field]) {
         // Convert ISO date string to YYYY-MM-DD format
         const date = new Date(updateData[field]);
         if (!isNaN(date.getTime())) {
-          updateData[field] = date.toISOString().split('T')[0];
+          updateData[field] = date.toISOString().split("T")[0];
         }
       }
     });
@@ -531,15 +531,20 @@ const removeOldPhoto = (photoUrl) => {
 const updateSisterPhoto = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     console.log(`📸 Uploading photo for sister ID: ${id}`);
-    console.log(`📁 File received:`, req.file ? {
-      originalname: req.file.originalname,
-      mimetype: req.file.mimetype,
-      size: req.file.size,
-      buffer: req.file.buffer ? 'Buffer present' : 'No buffer'
-    } : 'No file');
-    
+    console.log(
+      `📁 File received:`,
+      req.file
+        ? {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            buffer: req.file.buffer ? "Buffer present" : "No buffer",
+          }
+        : "No file"
+    );
+
     const sister = await SisterModel.findById(id);
     if (!sister) {
       console.error(`❌ Sister not found: ${id}`);
@@ -569,9 +574,9 @@ const updateSisterPhoto = async (req, res) => {
 
     // Upload to Firebase
     console.log(`🚀 Starting Firebase upload...`);
-    const uploadResult = await uploadToFirebase(req.file, 'photos');
+    const uploadResult = await uploadToFirebase(req.file, "photos");
     console.log(`✅ Firebase upload successful:`, uploadResult);
-    
+
     const photoUrl = uploadResult.url;
 
     console.log(`💾 Updating database with photo URL...`);
@@ -583,10 +588,10 @@ const updateSisterPhoto = async (req, res) => {
   } catch (error) {
     console.error("❌ updateSisterPhoto error:", error);
     console.error("Error stack:", error.stack);
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: "Failed to update photo",
       error: error.message,
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
   }
 };
@@ -632,9 +637,11 @@ const uploadSisterDocuments = async (req, res) => {
     }
 
     // Add new documents to Firebase
-    const uploadPromises = req.files.map(file => uploadToFirebase(file, 'documents'));
+    const uploadPromises = req.files.map((file) =>
+      uploadToFirebase(file, "documents")
+    );
     const uploadResults = await Promise.all(uploadPromises);
-    
+
     const newDocs = uploadResults.map((result) => ({
       name: result.originalName,
       url: result.url,

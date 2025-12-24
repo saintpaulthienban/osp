@@ -3,7 +3,13 @@ const multer = require("multer");
 // Sử dụng memoryStorage để lưu file dưới dạng Buffer
 const storage = multer.memoryStorage();
 
-const photoMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+const photoMimeTypes = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+];
 const documentMimeTypes = [
   "application/pdf",
   "application/msword",

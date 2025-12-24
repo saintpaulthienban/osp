@@ -348,7 +348,7 @@ const uploadDecisionFile = async (req, res) => {
     }
 
     // Upload to Firebase
-    const uploadResult = await uploadToFirebase(req.file, 'decisions');
+    const uploadResult = await uploadToFirebase(req.file, "decisions");
     const fileUrl = uploadResult.url;
 
     const updated = await CommunityAssignmentModel.update(id, {

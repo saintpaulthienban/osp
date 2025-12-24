@@ -247,7 +247,7 @@ const uploadCertificate = async (req, res) => {
     }
 
     // Upload to Firebase
-    const uploadResult = await uploadToFirebase(req.file, 'certificates');
+    const uploadResult = await uploadToFirebase(req.file, "certificates");
     const fileUrl = uploadResult.url;
 
     const updated = await EducationModel.update(id, {
