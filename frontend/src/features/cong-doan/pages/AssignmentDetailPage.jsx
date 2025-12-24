@@ -418,15 +418,6 @@ const AssignmentDetailPage = () => {
                         </div>
                         <div className="d-flex gap-2">
                           <Button
-                            variant="outline-primary"
-                            size="sm"
-                            href={doc.url}
-                            target="_blank"
-                            title="Xem"
-                          >
-                            <i className="fas fa-eye"></i>
-                          </Button>
-                          <Button
                             variant="outline-success"
                             size="sm"
                             href={doc.url}
@@ -452,18 +443,6 @@ const AssignmentDetailPage = () => {
                         </div>
                       </div>
                       <div className="d-flex gap-2">
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          href={`${
-                            import.meta.env.VITE_API_URL ||
-                            "http://localhost:5000"
-                          }${assignment.decision_file_url}`}
-                          target="_blank"
-                          title="Xem"
-                        >
-                          <i className="fas fa-eye"></i>
-                        </Button>
                         <Button
                           variant="outline-success"
                           size="sm"

@@ -392,14 +392,6 @@ const MissionDetailPage = () => {
                           {doc.url && (
                             <div className="d-flex gap-2">
                               <Button
-                                variant="outline-primary"
-                                size="sm"
-                                href={doc.url}
-                                target="_blank"
-                              >
-                                <i className="fas fa-eye"></i>
-                              </Button>
-                              <Button
                                 variant="outline-success"
                                 size="sm"
                                 href={doc.url}

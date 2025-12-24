@@ -392,30 +392,48 @@ const HealthRecordDetailPage = () => {
             {/* Documents Card */}
             <Card className="health-info-card">
               <Card.Header className="documents-header">
-                <i className="fas fa-file-medical"></i>
-                <span>Tài liệu đính kèm</span>
+                <i className="fas fa-file-alt"></i>
+                <span>
+                  Tài liệu đính kèm
+                  {documents.length > 0 && ` (${documents.length})`}
+                </span>
               </Card.Header>
               <Card.Body>
                 {documents.length > 0 ? (
-                  <ul className="health-document-list">
+                  <ListGroup variant="flush">
                     {documents.map((doc, index) => (
-                      <li key={index} className="health-document-item">
-                        <i className="fas fa-file-alt"></i>
-                        <a
-                          href={resolveMediaUrl(doc.url)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          download
-                        >
-                          {doc.name || `Tài liệu ${index + 1}`}
-                        </a>
-                      </li>
+                      <ListGroup.Item key={index} className="px-0">
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div className="d-flex align-items-center">
+                            <i className="fas fa-file-pdf text-danger me-3 fs-4"></i>
+                            <div>
+                              <div className="fw-semibold">{doc.name || `Tài liệu ${index + 1}`}</div>
+                              <small className="text-muted">
+                                {doc.size && `${(doc.size / 1024).toFixed(2)} KB`}
+                                {doc.uploaded_at &&
+                                  ` • ${formatDate(doc.uploaded_at)}`}
+                              </small>
+                            </div>
+                          </div>
+                          <div className="d-flex gap-2">
+                            <Button
+                              variant="outline-success"
+                              size="sm"
+                              href={resolveMediaUrl(doc.url)}
+                              download={doc.name}
+                              title="Tải xuống"
+                            >
+                              <i className="fas fa-download"></i>
+                            </Button>
+                          </div>
+                        </div>
+                      </ListGroup.Item>
                     ))}
-                  </ul>
+                  </ListGroup>
                 ) : (
-                  <div className="health-empty-state">
-                    <i className="fas fa-folder-open"></i>
-                    <p>Không có tài liệu đính kèm</p>
+                  <div className="text-center text-muted py-4">
+                    <i className="fas fa-folder-open fa-3x mb-3 opacity-50"></i>
+                    <p className="mb-0">Chưa có tài liệu đính kèm</p>
                   </div>
                 )}
               </Card.Body>

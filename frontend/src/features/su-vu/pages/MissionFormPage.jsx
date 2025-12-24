@@ -430,15 +430,6 @@ const MissionFormPage = () => {
                             {doc.url && (
                               <>
                                 <Button
-                                  variant="outline-primary"
-                                  size="sm"
-                                  href={doc.url}
-                                  target="_blank"
-                                  title="Xem"
-                                >
-                                  <i className="fas fa-eye"></i>
-                                </Button>
-                                <Button
                                   variant="outline-success"
                                   size="sm"
                                   href={doc.url}

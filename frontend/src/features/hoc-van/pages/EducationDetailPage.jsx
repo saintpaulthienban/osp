@@ -291,42 +291,50 @@ const EducationDetailPage = () => {
 
         <Col lg={4}>
           <Card className="mb-4 education-detail-card">
-            <Card.Header>
-              <FaPaperclip className="me-2" />
-              Tài liệu đính kèm
+            <Card.Header className="documents-header">
+              <i className="fas fa-file-alt"></i>
+              <span>
+                Tài liệu đính kèm
+                {documents.length > 0 && ` (${documents.length})`}
+              </span>
             </Card.Header>
             <Card.Body>
               {documents.length > 0 ? (
                 <ListGroup variant="flush">
-                  {documents.map((doc) => (
-                    <ListGroup.Item
-                      key={doc.id || doc.url || doc.name}
-                      className="d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        <div className="fw-semibold">
-                          {doc.name || "Tài liệu"}
+                  {documents.map((doc, index) => (
+                    <ListGroup.Item key={index} className="px-0">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div className="d-flex align-items-center">
+                          <i className="fas fa-file-pdf text-danger me-3 fs-4"></i>
+                          <div>
+                            <div className="fw-semibold">{doc.name || "Tài liệu"}</div>
+                            <small className="text-muted">
+                              {doc.size && `${(doc.size / 1024).toFixed(2)} KB`}
+                              {doc.uploaded_at &&
+                                ` • ${formatDate(doc.uploaded_at)}`}
+                            </small>
+                          </div>
                         </div>
-                        {doc.size && (
-                          <small className="text-muted">
-                            {(doc.size / (1024 * 1024)).toFixed(2)} MB
-                          </small>
-                        )}
+                        <div className="d-flex gap-2">
+                          <Button
+                            variant="outline-success"
+                            size="sm"
+                            href={doc.url}
+                            download={doc.name}
+                            title="Tải xuống"
+                          >
+                            <i className="fas fa-download"></i>
+                          </Button>
+                        </div>
                       </div>
-                      {doc.url && (
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => window.open(doc.url, "_blank")}
-                        >
-                          Xem
-                        </Button>
-                      )}
                     </ListGroup.Item>
                   ))}
                 </ListGroup>
               ) : (
-                <p className="text-muted mb-0">Chưa có tài liệu đính kèm</p>
+                <div className="text-center text-muted py-4">
+                  <i className="fas fa-folder-open fa-3x mb-3 opacity-50"></i>
+                  <p className="mb-0">Chưa có tài liệu đính kèm</p>
+                </div>
               )}
             </Card.Body>
           </Card>
