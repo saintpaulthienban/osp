@@ -313,6 +313,25 @@ const createSister = async (req, res) => {
       created_by: req.user ? req.user.id : null,
     };
 
+    // Convert date fields from ISO format to MySQL DATE format (YYYY-MM-DD)
+    const dateFields = [
+      'date_of_birth',
+      'id_card_date',
+      'baptism_date',
+      'confirmation_date',
+      'first_communion_date'
+    ];
+    
+    dateFields.forEach(field => {
+      if (payload[field]) {
+        // Convert ISO date string to YYYY-MM-DD format
+        const date = new Date(payload[field]);
+        if (!isNaN(date.getTime())) {
+          payload[field] = date.toISOString().split('T')[0];
+        }
+      }
+    });
+
     // Convert documents array to JSON string if needed
     if (Array.isArray(payload.documents)) {
       payload.documents = JSON.stringify(payload.documents);
@@ -398,6 +417,25 @@ const updateSister = async (req, res) => {
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];
+      }
+    });
+
+    // Convert date fields from ISO format to MySQL DATE format (YYYY-MM-DD)
+    const dateFields = [
+      'date_of_birth',
+      'id_card_date',
+      'baptism_date',
+      'confirmation_date',
+      'first_communion_date'
+    ];
+    
+    dateFields.forEach(field => {
+      if (updateData[field]) {
+        // Convert ISO date string to YYYY-MM-DD format
+        const date = new Date(updateData[field]);
+        if (!isNaN(date.getTime())) {
+          updateData[field] = date.toISOString().split('T')[0];
+        }
       }
     });
 
