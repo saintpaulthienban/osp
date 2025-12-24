@@ -233,6 +233,12 @@ const SisterFormPage = () => {
           return;
         }
 
+        // Special handling for photo_url - allow empty string to clear the image
+        if (key === "photo_url") {
+          submitData[key] = value || "";
+          return;
+        }
+
         if (value !== "" && value !== null && value !== undefined) {
           submitData[key] = value;
         } else if (["birth_name", "date_of_birth"].includes(key)) {
@@ -421,6 +427,11 @@ const SisterFormPage = () => {
                     accept="image/*"
                     maxSize={5 * 1024 * 1024}
                     preview
+                    initialPreview={values.photo_url}
+                    onRemoveInitial={() => {
+                      setFieldValue("photo_url", "");
+                      setFieldValue("photo_file", null);
+                    }}
                   />
                 </Card.Body>
               </Card>

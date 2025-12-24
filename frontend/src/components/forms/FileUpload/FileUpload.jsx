@@ -1,6 +1,6 @@
 // src/components/forms/FileUpload/FileUpload.jsx
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Form, Button } from "react-bootstrap";
 import "./FileUpload.css";
 
@@ -19,13 +19,21 @@ const FileUpload = ({
   maxFiles = 5,
   showPreview = true,
   className = "",
+  initialPreview = null, // URL of existing image
+  onRemoveInitial = null, // Callback when removing initial image
 }) => {
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
+  const [showInitialPreview, setShowInitialPreview] = useState(!!initialPreview);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
   const hasError = touched && error;
+
+  // Update showInitialPreview when initialPreview changes
+  useEffect(() => {
+    setShowInitialPreview(!!initialPreview);
+  }, [initialPreview]);
 
   const formatFileSize = (bytes) => {
     if (bytes === 0) return "0 Bytes";
@@ -160,6 +168,13 @@ const FileUpload = ({
     }
   };
 
+  const handleRemoveInitialPreview = () => {
+    setShowInitialPreview(false);
+    if (onRemoveInitial) {
+      onRemoveInitial();
+    }
+  };
+
   const handleBrowseClick = () => {
     fileInputRef.current?.click();
   };
@@ -221,7 +236,31 @@ const FileUpload = ({
         </div>
       </div>
 
-      {/* File Previews */}
+      {/* Initial Preview (existing image) */}
+      {showPreview && showInitialPreview && initialPreview && (
+        <div className="fileupload-previews">
+          <div className="preview-item">
+            <div className="preview-image">
+              <img src={initialPreview} alt="Current" />
+            </div>
+            <div className="preview-info">
+              <div className="preview-name">Ảnh hiện tại</div>
+              <div className="preview-size text-muted">Đã tải lên</div>
+            </div>
+            <button
+              type="button"
+              className="preview-remove"
+              onClick={handleRemoveInitialPreview}
+              disabled={disabled}
+              title="Xóa ảnh"
+            >
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* File Previews (new uploads) */}
       {showPreview && previews.length > 0 && (
         <div className="fileupload-previews">
           {previews.map((preview, index) => (
