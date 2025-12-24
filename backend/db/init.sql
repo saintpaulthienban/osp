@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS sisters (
   email VARCHAR(120) NULL,
   emergency_contact_name VARCHAR(120) NULL,
   emergency_contact_phone VARCHAR(30) NULL,
-  photo_url VARCHAR(255) NULL,
+  photo_url VARCHAR(1000) NULL,
   status ENUM('active','left') NOT NULL DEFAULT 'active',
   created_by INT UNSIGNED NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
