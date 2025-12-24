@@ -39,11 +39,6 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024, // 10MB
   },
 });
-  fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
-  },
-});
 
 // Apply authentication to all routes
 router.use(authenticateToken);
