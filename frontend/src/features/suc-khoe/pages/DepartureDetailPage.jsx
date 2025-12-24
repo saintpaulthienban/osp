@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Container, Row, Col, Card, Button, Badge } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Badge,
+  ListGroup,
+} from "react-bootstrap";
 import { departureService } from "@services";
 import { resolveMediaUrl } from "@/utils/media";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
@@ -228,33 +236,58 @@ const DepartureDetailPage = () => {
               <Card.Header className="departure-header subtle">
                 <h6 className="mb-0">
                   <i className="fas fa-file-alt me-2 text-accent"></i>
-                  Tài liệu
+                  Tài liệu đính kèm
+                  {documents.length > 0 && ` (${documents.length})`}
                 </h6>
               </Card.Header>
               <Card.Body>
                 {documents.length > 0 ? (
-                  <ul className="mb-0 departure-documents">
+                  <ListGroup variant="flush">
                     {documents.map((doc, idx) => {
                       const url = resolveMediaUrl(
                         doc.url || doc.path || doc.filePath || ""
                       );
+                      const fileName =
+                        doc.name || doc.originalname || `Tài liệu ${idx + 1}`;
                       return (
-                        <li key={doc.id || url || idx}>
-                          {url ? (
-                            <a href={url} target="_blank" rel="noreferrer">
-                              {doc.name || doc.originalname || url}
-                            </a>
-                          ) : (
-                            <span>
-                              {doc.name || doc.originalname || "Tài liệu"}
-                            </span>
-                          )}
-                        </li>
+                        <ListGroup.Item
+                          key={doc.id || url || idx}
+                          className="px-0"
+                        >
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div className="d-flex align-items-center">
+                              <i className="fas fa-file-pdf text-danger me-3 fs-4"></i>
+                              <div>
+                                <div className="fw-semibold">{fileName}</div>
+                                <small className="text-muted">
+                                  {doc.size &&
+                                    `${(doc.size / 1024).toFixed(2)} KB`}
+                                  {doc.uploaded_at &&
+                                    ` • ${formatDate(doc.uploaded_at)}`}
+                                </small>
+                              </div>
+                            </div>
+                            <div className="d-flex gap-2">
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                href={url}
+                                download={fileName}
+                                title="Tải xuống"
+                              >
+                                <i className="fas fa-download"></i>
+                              </Button>
+                            </div>
+                          </div>
+                        </ListGroup.Item>
                       );
                     })}
-                  </ul>
+                  </ListGroup>
                 ) : (
-                  <div className="text-muted">Không có tài liệu</div>
+                  <div className="text-center text-muted py-4">
+                    <i className="fas fa-folder-open fa-3x mb-3 opacity-50"></i>
+                    <p className="mb-0">Chưa có tài liệu đính kèm</p>
+                  </div>
                 )}
               </Card.Body>
             </Card>
