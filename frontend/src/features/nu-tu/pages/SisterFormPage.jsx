@@ -426,7 +426,7 @@ const SisterFormPage = () => {
                     }}
                     accept="image/*"
                     maxSize={5 * 1024 * 1024}
-                    preview
+                    showPreview={true}
                     initialPreview={values.photo_url}
                     onRemoveInitial={() => {
                       setFieldValue("photo_url", "");
