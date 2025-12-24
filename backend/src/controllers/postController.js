@@ -1,8 +1,7 @@
 // backend/src/controllers/postController.js
 
 const PostModel = require("../models/PostModel");
-const path = require("path");
-const fs = require("fs");
+const { uploadToFirebase } = require("./uploadController");
 
 /**
  * Get all posts with pagination and filters
@@ -88,15 +87,18 @@ const createPost = async (req, res) => {
       });
     }
 
-    // Handle file uploads
+    // Handle file uploads to Firebase
     let attachments = [];
     if (req.files && req.files.length > 0) {
-      attachments = req.files.map((file) => ({
-        name: file.originalname,
-        path: `/uploads/posts/${file.filename}`,
-        url: `/uploads/posts/${file.filename}`,
-        size: file.size,
-        mimetype: file.mimetype,
+      const uploadPromises = req.files.map(file => uploadToFirebase(file, 'posts'));
+      const uploadResults = await Promise.all(uploadPromises);
+      
+      attachments = uploadResults.map((result, index) => ({
+        name: result.originalName,
+        path: result.url,
+        url: result.url,
+        size: req.files[index].size,
+        mimetype: req.files[index].mimetype,
       }));
     }
 
@@ -175,14 +177,17 @@ const updatePost = async (req, res) => {
       }
     }
 
-    // Add new uploads
+    // Add new uploads to Firebase
     if (req.files && req.files.length > 0) {
-      const newFiles = req.files.map((file) => ({
-        name: file.originalname,
-        path: `/uploads/posts/${file.filename}`,
-        url: `/uploads/posts/${file.filename}`,
-        size: file.size,
-        mimetype: file.mimetype,
+      const uploadPromises = req.files.map(file => uploadToFirebase(file, 'posts'));
+      const uploadResults = await Promise.all(uploadPromises);
+      
+      const newFiles = uploadResults.map((result, index) => ({
+        name: result.originalName,
+        path: result.url,
+        url: result.url,
+        size: req.files[index].size,
+        mimetype: req.files[index].mimetype,
       }));
       attachments = [...attachments, ...newFiles];
     }

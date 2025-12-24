@@ -2,28 +2,13 @@
 
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
 const postController = require("../controllers/postController");
 const { authenticateToken, checkPermission } = require("../middlewares/auth");
 
 const router = express.Router();
 
-// Setup multer for file uploads
-const uploadDir = path.join(__dirname, "../uploads/posts");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
-  },
-});
+// Setup multer với memoryStorage
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
@@ -37,6 +22,7 @@ const fileFilter = (req, file, cb) => {
     "image/jpeg",
     "image/png",
     "image/gif",
+    "image/webp",
   ];
 
   if (allowedTypes.includes(file.mimetype)) {
@@ -48,6 +34,11 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
   storage,
+  fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB
+  },
+});
   fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB

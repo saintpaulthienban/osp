@@ -1,50 +1,26 @@
-const fs = require("fs");
-const path = require("path");
 const multer = require("multer");
 
-const UPLOADS_ROOT = path.resolve(__dirname, "../uploads");
-const PHOTO_DIR = path.join(UPLOADS_ROOT, "photos");
-const DOCUMENT_DIR = path.join(UPLOADS_ROOT, "documents");
-const CERTIFICATE_DIR = path.join(UPLOADS_ROOT, "certificates");
-const DECISION_DIR = path.join(UPLOADS_ROOT, "decisions");
+// Sử dụng memoryStorage để lưu file dưới dạng Buffer
+const storage = multer.memoryStorage();
 
-const ensureDir = (dirPath) => {
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true });
-  }
-};
-
-[PHOTO_DIR, DOCUMENT_DIR, CERTIFICATE_DIR, DECISION_DIR].forEach(ensureDir);
-
-const generateFilename = (originalName) => {
-  const timestamp = Date.now();
-  const randomString = Math.random().toString(36).slice(2, 8);
-  const extension = path.extname(originalName) || "";
-  return `${timestamp}-${randomString}${extension}`;
-};
-
-const createStorage = (targetDir) =>
-  multer.diskStorage({
-    destination: (req, file, cb) => cb(null, targetDir),
-    filename: (req, file, cb) => cb(null, generateFilename(file.originalname)),
-  });
-
-const photoMimeTypes = ["image/jpeg", "image/jpg", "image/png"];
+const photoMimeTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
 const documentMimeTypes = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-excel",
 ];
 
-const createUploader = ({ directory, allowedMimeTypes, fileSize }) =>
+const createUploader = ({ allowedMimeTypes, fileSize }) =>
   multer({
-    storage: createStorage(directory),
-    limits: { fileSize },
+    storage: storage,
+    limits: { fileSize: fileSize || 10 * 1024 * 1024 }, // Default 10MB
     fileFilter: (req, file, cb) => {
       if (allowedMimeTypes.includes(file.mimetype)) {
         return cb(null, true);
       }
-      return cb(new Error("Invalid file type")); // Non-MulterError handled downstream
+      return cb(new Error("Invalid file type"));
     },
   });
 
@@ -70,6 +46,26 @@ const decisionUploader = createUploader({
   directory: DECISION_DIR,
   allowedMimeTypes: [...documentMimeTypes, ...photoMimeTypes],
   fileSize: 10 * 1024 * 1024,
+});
+
+const photoUploader = createUploader({
+  allowedMimeTypes: photoMimeTypes,
+  fileSize: 5 * 1024 * 1024, // 5MB for photos
+});
+
+const documentUploader = createUploader({
+  allowedMimeTypes: documentMimeTypes,
+  fileSize: 10 * 1024 * 1024, // 10MB for documents
+});
+
+const decisionUploader = createUploader({
+  allowedMimeTypes: documentMimeTypes,
+  fileSize: 10 * 1024 * 1024, // 10MB for decisions
+});
+
+const certificateUploader = createUploader({
+  allowedMimeTypes: [...photoMimeTypes, ...documentMimeTypes],
+  fileSize: 10 * 1024 * 1024, // 10MB for certificates
 });
 
 const handleUploadErrors = (uploader) => (req, res, next) => {

@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const EducationModel = require("../models/EducationModel");
+const { uploadToFirebase } = require("./uploadController");
 const SisterModel = require("../models/SisterModel");
 const AuditLogModel = require("../models/AuditLogModel");
 const { applyScopeFilter, checkScopeAccess } = require("../utils/scopeHelper");
@@ -245,13 +246,9 @@ const uploadCertificate = async (req, res) => {
       return res.status(400).json({ message: "Certificate file is required" });
     }
 
-    removeCertificateFile(education.certificate_url);
-
-    const uploadsRoot = path.resolve(__dirname, "../uploads");
-    const relative = path
-      .relative(uploadsRoot, req.file.path)
-      .replace(/\\/g, "/");
-    const fileUrl = `/uploads/${relative}`;
+    // Upload to Firebase
+    const uploadResult = await uploadToFirebase(req.file, 'certificates');
+    const fileUrl = uploadResult.url;
 
     const updated = await EducationModel.update(id, {
       certificate_url: fileUrl,

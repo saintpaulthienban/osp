@@ -1,4 +1,5 @@
 const CommunityModel = require("../models/CommunityModel");
+const { uploadToFirebase } = require("./uploadController");
 const CommunityAssignmentModel = require("../models/CommunityAssignmentModel");
 const AuditLogModel = require("../models/AuditLogModel");
 const { clearCacheForResource } = require("../middlewares/cache");
@@ -410,7 +411,8 @@ const addMember = async (req, res) => {
     // Get file URL if uploaded
     let decision_file_url = null;
     if (req.file) {
-      decision_file_url = `/uploads/decisions/${req.file.filename}`;
+      const uploadResult = await uploadToFirebase(req.file, 'decisions');
+      decision_file_url = uploadResult.url;
     }
 
     // Create assignment
@@ -541,7 +543,8 @@ const updateMemberRole = async (req, res) => {
 
     // Get file URL if uploaded
     if (req.file) {
-      updateData.decision_file_url = `/uploads/decisions/${req.file.filename}`;
+      const uploadResult = await uploadToFirebase(req.file, 'decisions');
+      updateData.decision_file_url = uploadResult.url;
     }
 
     const updatedAssignment = await CommunityAssignmentModel.update(

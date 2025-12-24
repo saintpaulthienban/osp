@@ -347,20 +347,9 @@ const uploadDecisionFile = async (req, res) => {
       return res.status(400).json({ message: "Document file is required" });
     }
 
-    if (assignment.decision_file_url) {
-      const oldPath = path.join(
-        UPLOADS_ROOT,
-        assignment.decision_file_url.replace("/uploads/", "")
-      );
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
-    }
-
-    const relativePath = path
-      .relative(UPLOADS_ROOT, req.file.path)
-      .replace(/\\/g, "/");
-    const fileUrl = `/uploads/${relativePath}`;
+    // Upload to Firebase
+    const uploadResult = await uploadToFirebase(req.file, 'decisions');
+    const fileUrl = uploadResult.url;
 
     const updated = await CommunityAssignmentModel.update(id, {
       decision_file_url: fileUrl,

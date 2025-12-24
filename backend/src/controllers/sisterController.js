@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const SisterModel = require("../models/SisterModel");
+const { uploadToFirebase } = require("./uploadController");
 const VocationJourneyModel = require("../models/VocationJourneyModel");
 const CommunityAssignmentModel = require("../models/CommunityAssignmentModel");
 const MissionModel = require("../models/MissionModel");
@@ -516,12 +517,9 @@ const updateSisterPhoto = async (req, res) => {
       return res.status(400).json({ message: "Photo file is required" });
     }
 
-    removeOldPhoto(sister.photo_url);
-
-    const relativePath = path
-      .relative(UPLOADS_ROOT, req.file.path)
-      .replace(/\\/g, "/");
-    const photoUrl = `/uploads/${relativePath}`;
+    // Upload to Firebase
+    const uploadResult = await uploadToFirebase(req.file, 'photos');
+    const photoUrl = uploadResult.url;
 
     const updated = await SisterModel.update(id, { photo_url: photoUrl });
     await logAudit(req, "UPDATE", id, sister, updated);
@@ -573,17 +571,15 @@ const uploadSisterDocuments = async (req, res) => {
       }
     }
 
-    // Add new documents
-    const newDocs = req.files.map((file) => {
-      const relativePath = path
-        .relative(UPLOADS_ROOT, file.path)
-        .replace(/\\/g, "/");
-      return {
-        name: file.originalname,
-        url: `/uploads/${relativePath}`,
-        uploadedAt: new Date().toISOString(),
-      };
-    });
+    // Add new documents to Firebase
+    const uploadPromises = req.files.map(file => uploadToFirebase(file, 'documents'));
+    const uploadResults = await Promise.all(uploadPromises);
+    
+    const newDocs = uploadResults.map((result) => ({
+      name: result.originalName,
+      url: result.url,
+      uploadedAt: new Date().toISOString(),
+    }));
 
     const allDocs = [...existingDocs, ...newDocs];
     const documentsUrl = JSON.stringify(allDocs);

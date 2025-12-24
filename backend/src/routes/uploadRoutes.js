@@ -1,10 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const path = require("path");
 const { uploadDocuments } = require("../middlewares/upload");
 const { authenticateToken } = require("../middlewares/auth");
-
-const UPLOADS_ROOT = path.resolve(__dirname, "../uploads");
+const { uploadToFirebase } = require("../controllers/uploadController");
 
 // Upload multiple documents
 router.post(
@@ -17,19 +15,18 @@ router.post(
         return res.status(400).json({ message: "No files uploaded" });
       }
 
-      const uploadedFiles = req.files.map((file, index) => {
-        const relativePath = path
-          .relative(UPLOADS_ROOT, file.path)
-          .replace(/\\/g, "/");
-        return {
-          id: Date.now() + index,
-          name: file.originalname,
-          size: file.size,
-          type: file.mimetype,
-          url: `/uploads/${relativePath}`,
-          uploadedAt: new Date().toISOString(),
-        };
-      });
+      // Upload tất cả files lên Firebase
+      const uploadPromises = req.files.map(file => uploadToFirebase(file));
+      const results = await Promise.all(uploadPromises);
+
+      const uploadedFiles = results.map((result, index) => ({
+        id: Date.now() + index,
+        name: result.originalName,
+        size: req.files[index].size,
+        type: req.files[index].mimetype,
+        url: result.url,
+        uploadedAt: new Date().toISOString(),
+      }));
 
       return res.status(200).json({
         success: true,
