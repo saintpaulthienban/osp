@@ -12,11 +12,12 @@ import {
   Table,
   Modal,
   Form,
+  Spinner,
 } from "react-bootstrap";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { userService } from "@services";
-import { formatDate } from "@utils";
+import { formatDate, formatRelativeTime } from "@utils";
 import LoadingSpinner from "@components/common/Loading/LoadingSpinner";
 import Breadcrumb from "@components/common/Breadcrumb";
 import "./UserDetailPage.css";
@@ -36,6 +37,9 @@ const UserDetailPage = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [resetting, setResetting] = useState(false);
+  const [showActivityModal, setShowActivityModal] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [loadingActivityDetail, setLoadingActivityDetail] = useState(false);
 
   useEffect(() => {
     fetchUserDetail();
@@ -188,6 +192,11 @@ const UserDetailPage = () => {
     } finally {
       setResetting(false);
     }
+  };
+
+  const handleActivityClick = (activity) => {
+    setSelectedActivity(activity);
+    setShowActivityModal(true);
   };
 
   const handleToggleStatus = async () => {
@@ -566,44 +575,82 @@ const UserDetailPage = () => {
                 Lịch sử hoạt động
               </h5>
             </Card.Header>
-            <Card.Body>
+            <Card.Body className="p-0">
               {activities.length > 0 ? (
-                <div style={{ maxHeight: "400px", overflowY: "auto" }}>
-                  <div className="table-responsive">
-                    <Table hover className="activity-table">
-                      <thead>
-                        <tr>
-                          <th>Thời gian</th>
-                          <th>Hoạt động</th>
-                          <th>Chi tiết</th>
-                          <th>IP</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {activities.map((activity) => (
-                          <tr key={activity.id}>
-                            <td>{formatDate(activity.created_at)}</td>
-                            <td>
-                              <Badge bg={getActivityBadge(activity.action).bg}>
-                                {activity.action_label}
-                              </Badge>
-                            </td>
-                            <td>{activity.description}</td>
-                            <td>
-                              <code>{activity.ip_address}</code>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
+                <div style={{ maxHeight: "500px", overflowY: "auto" }}>
+                  <ListGroup variant="flush">
+                    {activities.map((activity) => {
+                      const badge = getActivityBadge(activity.action);
+                      const icon = getActionIcon(activity.action);
+                      return (
+                        <ListGroup.Item
+                          key={activity.id}
+                          className="border-0 border-bottom activity-item"
+                          action
+                          onClick={() => handleActivityClick(activity)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <div className="d-flex align-items-start">
+                            <div
+                              className={`activity-icon bg-${badge.bg} bg-opacity-10 text-${badge.bg} me-3`}
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "10px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                flexShrink: 0,
+                              }}
+                            >
+                              <i className={`fas ${icon}`}></i>
+                            </div>
+                            <div className="flex-grow-1">
+                              <p className="mb-1 fw-medium">
+                                {activity.description ||
+                                  activity.action_label ||
+                                  badge.label}
+                              </p>
+                              <div className="d-flex align-items-center gap-2 flex-wrap">
+                                <small className="text-muted">
+                                  <i className="fas fa-clock me-1"></i>
+                                  {formatRelativeTime(
+                                    new Date(
+                                      activity.created_at || activity.timestamp
+                                    )
+                                  )}
+                                </small>
+                                {activity.ip_address && (
+                                  <>
+                                    <small className="text-muted">•</small>
+                                    <small className="text-muted">
+                                      <i className="fas fa-network-wired me-1"></i>
+                                      <code>{activity.ip_address}</code>
+                                    </small>
+                                  </>
+                                )}
+                                <small className="text-muted">•</small>
+                                <Badge
+                                  bg={badge.bg}
+                                  className="fw-normal"
+                                  style={{ fontSize: "0.7rem" }}
+                                >
+                                  {badge.label}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="ms-2 text-muted">
+                              <i className="fas fa-chevron-right"></i>
+                            </div>
+                          </div>
+                        </ListGroup.Item>
+                      );
+                    })}
+                  </ListGroup>
                 </div>
               ) : (
                 <div className="text-center text-muted py-5">
-                  <i
-                    className="fas fa-history mb-3"
-                    style={{ fontSize: "3rem" }}
-                  ></i>
+                  <i className="fas fa-history fa-3x mb-3 opacity-50"></i>
                   <p className="mb-0">Chưa có hoạt động nào</p>
                 </div>
               )}
@@ -611,6 +658,131 @@ const UserDetailPage = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Activity Detail Modal */}
+      <Modal
+        show={showActivityModal}
+        onHide={() => setShowActivityModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton className="bg-light">
+          <Modal.Title>
+            <i className="fas fa-info-circle me-2 text-primary"></i>
+            Chi tiết hoạt động
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {loadingActivityDetail ? (
+            <div className="text-center py-5">
+              <Spinner animation="border" variant="primary" />
+              <p className="mt-3 text-muted">Đang tải chi tiết...</p>
+            </div>
+          ) : selectedActivity ? (
+            <div>
+              {/* Activity Summary */}
+              <div className="mb-4 p-3 bg-light rounded">
+                <div className="d-flex align-items-center mb-3">
+                  <div
+                    className={`bg-${
+                      getActivityBadge(selectedActivity.action).bg
+                    } bg-opacity-10 text-${
+                      getActivityBadge(selectedActivity.action).bg
+                    } me-3`}
+                    style={{
+                      width: "50px",
+                      height: "50px",
+                      borderRadius: "12px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <i
+                      className={`fas ${getActionIcon(
+                        selectedActivity.action
+                      )} fa-lg`}
+                    ></i>
+                  </div>
+                  <div>
+                    <h5 className="mb-1">
+                      {selectedActivity.description ||
+                        selectedActivity.action_label}
+                    </h5>
+                    <div className="text-muted small">
+                      <span className="me-3">
+                        <i className="fas fa-calendar me-1"></i>
+                        {formatDate(
+                          selectedActivity.created_at ||
+                            selectedActivity.timestamp
+                        )}
+                      </span>
+                      <Badge bg={getActivityBadge(selectedActivity.action).bg}>
+                        {getActivityBadge(selectedActivity.action).label}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Info */}
+                <div className="row mt-3">
+                  <div className="col-md-6">
+                    <small className="text-muted d-block mb-1">Hành động</small>
+                    <span className="fw-medium">
+                      {selectedActivity.action_label ||
+                        getActivityBadge(selectedActivity.action).label}
+                    </span>
+                  </div>
+                  {selectedActivity.ip_address && (
+                    <div className="col-md-6">
+                      <small className="text-muted d-block mb-1">
+                        Địa chỉ IP
+                      </small>
+                      <code>{selectedActivity.ip_address}</code>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Details */}
+              {selectedActivity.details && (
+                <div className="mb-3">
+                  <h6 className="mb-3">
+                    <i className="fas fa-info-circle me-2 text-primary"></i>
+                    Chi tiết bổ sung
+                  </h6>
+                  <div className="p-3 bg-light rounded">
+                    <pre className="mb-0" style={{ whiteSpace: "pre-wrap" }}>
+                      {JSON.stringify(selectedActivity.details, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+
+              {!selectedActivity.details && (
+                <div className="text-center py-3 text-muted bg-light rounded">
+                  <i className="fas fa-info-circle me-2"></i>
+                  Không có chi tiết bổ sung cho hoạt động này
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-5 text-muted">
+              <i className="fas fa-exclamation-circle fa-3x mb-3"></i>
+              <p>Không có dữ liệu</p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowActivityModal(false)}
+          >
+            <i className="fas fa-times me-2"></i>
+            Đóng
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Reset Password Modal */}
       <Modal
@@ -702,20 +874,44 @@ const UserDetailPage = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      <style>{`
+        .activity-item:hover {
+          background-color: rgba(0, 123, 255, 0.05);
+        }
+        .activity-item:hover .fa-chevron-right {
+          color: var(--bs-primary) !important;
+        }
+      `}</style>
     </Container>
   );
 };
 
-// Helper function
+// Helper functions
 const getActivityBadge = (action) => {
   const badges = {
-    login: { bg: "success" },
-    logout: { bg: "secondary" },
-    create: { bg: "primary" },
-    update: { bg: "info" },
-    delete: { bg: "danger" },
+    login: { bg: "success", label: "Đăng nhập" },
+    logout: { bg: "secondary", label: "Đăng xuất" },
+    create: { bg: "primary", label: "Tạo mới" },
+    update: { bg: "info", label: "Cập nhật" },
+    delete: { bg: "danger", label: "Xóa" },
+    view: { bg: "info", label: "Xem" },
+    export: { bg: "warning", label: "Xuất" },
   };
-  return badges[action] || { bg: "secondary" };
+  return badges[action] || { bg: "secondary", label: action };
+};
+
+const getActionIcon = (action) => {
+  const icons = {
+    login: "fa-sign-in-alt",
+    logout: "fa-sign-out-alt",
+    create: "fa-plus-circle",
+    update: "fa-edit",
+    delete: "fa-trash-alt",
+    view: "fa-eye",
+    export: "fa-download",
+  };
+  return icons[action] || "fa-circle";
 };
 
 export default UserDetailPage;
