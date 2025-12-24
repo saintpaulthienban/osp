@@ -247,7 +247,13 @@ const VocationJourneyFormPage = () => {
         // Special handling for end_date: send null if empty (for editing mode to clear date)
         if (field === "end_date") {
           payload[field] = values[field] || null;
-        } else if (values[field] !== undefined && values[field] !== "") {
+        } 
+        // In edit mode, send null for optional fields that are empty (to allow clearing)
+        else if (isEditMode && ["location", "superior", "formation_director", "community_id", "supervisor_id", "notes"].includes(field)) {
+          payload[field] = values[field] || null;
+        }
+        // For other fields, only send if not empty
+        else if (values[field] !== undefined && values[field] !== "") {
           payload[field] = values[field];
         }
       });

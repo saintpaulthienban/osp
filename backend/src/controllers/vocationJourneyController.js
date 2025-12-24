@@ -528,33 +528,28 @@ const updateJourneyStage = async (req, res) => {
       return res.status(404).json({ message: "Stage not found" });
     }
 
-    // Filter allowed fields and handle empty strings
-    const allowedFields = [
-      "sister_id",
-      "stage",
-      "start_date",
-      "end_date",
-      "location",
-      "superior",
-      "formation_director",
-      "community_id",
-      "supervisor_id",
-      "notes",
-      "documents",
-    ];
-
-    const payload = {};
-    allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        // Convert empty strings to null for nullable fields
-        if (req.body[field] === "") {
-          payload[field] = null;
-        } else {
-          payload[field] = req.body[field];
-        }
-      }
-    });
-
+    const payload = { ...req.body };
+    
+    // Convert empty strings to null for optional fields
+    if (payload.superior !== undefined && payload.superior === "") {
+      payload.superior = null;
+    }
+    if (payload.formation_director !== undefined && payload.formation_director === "") {
+      payload.formation_director = null;
+    }
+    if (payload.location !== undefined && payload.location === "") {
+      payload.location = null;
+    }
+    if (payload.notes !== undefined && payload.notes === "") {
+      payload.notes = null;
+    }
+    if (payload.community_id !== undefined && payload.community_id === "") {
+      payload.community_id = null;
+    }
+    if (payload.supervisor_id !== undefined && payload.supervisor_id === "") {
+      payload.supervisor_id = null;
+    }
+    
     if (payload.start_date) {
       const parsed = parseDateOnly(payload.start_date);
       if (!parsed) {
@@ -574,8 +569,10 @@ const updateJourneyStage = async (req, res) => {
       payload.end_date = formatDateOnly(parsedEnd);
     }
     // Stringify documents if provided
-    if (payload.documents !== undefined && payload.documents !== null) {
-      payload.documents = JSON.stringify(payload.documents);
+    if (payload.documents !== undefined) {
+      payload.documents = payload.documents
+        ? JSON.stringify(payload.documents)
+        : null;
     }
 
     const updated = await VocationJourneyModel.update(stageId, payload);
