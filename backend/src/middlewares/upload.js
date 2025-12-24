@@ -83,11 +83,6 @@ module.exports = {
   uploadMultiple,
   uploadDocuments,
 };
-);
-
-module.exports = {
-  uploadPhoto,
-  uploadDocument,
   uploadDecision,
   uploadMultiple,
   uploadDocuments,
