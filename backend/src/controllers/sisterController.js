@@ -6,7 +6,11 @@ const VocationJourneyModel = require("../models/VocationJourneyModel");
 const CommunityAssignmentModel = require("../models/CommunityAssignmentModel");
 const MissionModel = require("../models/MissionModel");
 const AuditLogModel = require("../models/AuditLogModel");
-const { applyScopeFilter, checkScopeAccess } = require("../utils/scopeHelper");
+const {
+  applyScopeFilter,
+  checkScopeAccess,
+  getSisterCommunityIds,
+} = require("../utils/scopeHelper");
 
 const UPLOADS_ROOT = path.resolve(__dirname, "../uploads");
 
@@ -186,11 +190,17 @@ const getAllSisters = async (req, res) => {
       ? `WHERE ${prefixedClauses.join(" AND ")}`
       : "";
 
+    // Debug: Log the full query
+    console.log("[SisterController] joinClause:", joinClause);
+    console.log("[SisterController] whereClause:", whereClause);
+    console.log("[SisterController] params:", params);
+
     const totalRows = await SisterModel.executeQuery(
       `SELECT COUNT(DISTINCT s.id) AS total FROM sisters s ${joinClause} ${whereClause}`,
       params
     );
     const total = totalRows[0] ? totalRows[0].total : 0;
+    console.log("[SisterController] total sisters found:", total);
 
     // JOIN with communities and vocation_journey to get current stage and community
     // Ưu tiên giai đoạn chưa kết thúc (end_date IS NULL), sau đó lấy giai đoạn mới nhất theo start_date
@@ -225,11 +235,13 @@ const getAllSisters = async (req, res) => {
     );
 
     // Map the results to use journey data as primary source
+    // current_community_name should ONLY come from vocation_journey, not from current_community_id
+    // If sister has no vocation journey, community should be null/empty
     const mappedRows = rows.map((row) => ({
       ...row,
       current_stage: row.current_stage_from_journey || row.current_stage,
-      current_community_name:
-        row.current_community_name_from_journey || row.current_community_name,
+      // Only use community from vocation_journey, do NOT fallback to current_community_id
+      current_community_name: row.current_community_name_from_journey || null,
     }));
 
     return res.status(200).json({
@@ -258,12 +270,12 @@ const getSisterById = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access
+    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,
       "sisters",
-      async (sisterRecord) => sisterRecord.current_community_id
+      getSisterCommunityIds
     );
 
     if (!hasAccess) {
@@ -361,12 +373,12 @@ const updateSister = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access
+    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,
       "sisters",
-      async (sisterRecord) => sisterRecord.current_community_id
+      getSisterCommunityIds
     );
 
     if (!hasAccess) {
@@ -483,12 +495,12 @@ const deleteSister = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access
+    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,
       "sisters",
-      async (sisterRecord) => sisterRecord.current_community_id
+      getSisterCommunityIds
     );
 
     if (!hasAccess) {
@@ -551,12 +563,12 @@ const updateSisterPhoto = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access
+    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,
       "sisters",
-      async (sisterRecord) => sisterRecord.current_community_id
+      getSisterCommunityIds
     );
 
     if (!hasAccess) {
@@ -604,12 +616,12 @@ const uploadSisterDocuments = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access
+    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,
       "sisters",
-      async (sisterRecord) => sisterRecord.current_community_id
+      getSisterCommunityIds
     );
 
     if (!hasAccess) {
@@ -674,12 +686,12 @@ const deleteSisterDocument = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access
+    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,
       "sisters",
-      async (sisterRecord) => sisterRecord.current_community_id
+      getSisterCommunityIds
     );
 
     if (!hasAccess) {

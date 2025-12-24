@@ -21,6 +21,16 @@ const parseAllowedOrigins = () => {
 const buildCorsOptions = () => {
   const allowedOrigins = parseAllowedOrigins();
   const allowAllOrigins = allowedOrigins.includes("*");
+  
+  // Development localhost origins
+  const localhostOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+  ];
 
   return {
     origin: (origin, callback) => {
@@ -34,6 +44,12 @@ const buildCorsOptions = () => {
       }
 
       if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      // Allow localhost in development for easier testing
+      if (localhostOrigins.includes(origin)) {
+        console.log(`✅ CORS allowing development origin: ${origin}`);
         return callback(null, true);
       }
 

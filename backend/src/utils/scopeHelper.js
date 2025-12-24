@@ -54,10 +54,10 @@ function applyScopeFilter(scope, tableName = "sisters", options = {}) {
     }
 
     // Option 2: Use JOIN with community_assignments
-    const currentCondition = opts.currentOnly ? " AND end_date IS NULL" : "";
-
+    // Note: Don't add currentCondition here - it's handled in JOIN clause by sisterController
+    // This prevents duplicate end_date conditions and allows proper filtering
     return {
-      whereClause: `${opts.communityIdColumn} IN (${placeholders})${currentCondition}`,
+      whereClause: `${opts.communityIdColumn} IN (${placeholders})`,
       params: scope.community_ids,
       needsJoin: true,
       joinTable: opts.communityJoinTable,
@@ -169,7 +169,7 @@ function getScopeParams(scope, options = {}) {
  * @param {Object} scope - The user's data scope
  * @param {number} itemId - ID of the item to check
  * @param {string} tableName - Table name
- * @param {Function} getCommunitiesCallback - Function to get item's communities
+ * @param {Function} getCommunitiesCallback - Function to get item's communities (should return array of community IDs)
  * @returns {Promise<boolean>} - True if user has access
  */
 async function checkScopeAccess(
@@ -190,7 +190,13 @@ async function checkScopeAccess(
     }
 
     const itemCommunities = await getCommunitiesCallback(itemId);
-    return itemCommunities.some((cid) =>
+
+    // Handle both array and single value returns
+    const communityArray = Array.isArray(itemCommunities)
+      ? itemCommunities
+      : [itemCommunities].filter(Boolean);
+
+    return communityArray.some((cid) =>
       scope.community_ids.includes(Number(cid))
     );
   }
@@ -208,10 +214,29 @@ async function checkScopeAccess(
   return false;
 }
 
+/**
+ * Get all community IDs for a sister from community_assignments
+ * Use this as callback for checkScopeAccess
+ *
+ * @param {number} sisterId - The sister's ID
+ * @returns {Promise<Array<number>>} - Array of community IDs
+ */
+async function getSisterCommunityIds(sisterId) {
+  const db = require("../config/database");
+  const [rows] = await db.query(
+    `SELECT DISTINCT community_id 
+     FROM community_assignments 
+     WHERE sister_id = ? AND (end_date IS NULL OR end_date >= CURDATE())`,
+    [sisterId]
+  );
+  return rows.map((r) => r.community_id);
+}
+
 module.exports = {
   applyScopeFilter,
   buildScopedQuery,
   getScopeWhereClause,
   getScopeParams,
   checkScopeAccess,
+  getSisterCommunityIds,
 };
