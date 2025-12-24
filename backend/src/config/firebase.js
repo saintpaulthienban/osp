@@ -3,33 +3,52 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-// Kiểm tra xem biến môi trường có tồn tại không để tránh lỗi crash app
-if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-  console.error('❌ FIREBASE_SERVICE_ACCOUNT environment variable is missing');
-  throw new Error('Thiếu biến môi trường FIREBASE_SERVICE_ACCOUNT');
-}
+let bucket = null;
+let initialized = false;
 
-if (!process.env.FIREBASE_STORAGE_BUCKET) {
-  console.error('❌ FIREBASE_STORAGE_BUCKET environment variable is missing');
-  throw new Error('Thiếu biến môi trường FIREBASE_STORAGE_BUCKET');
-}
+const initializeFirebase = () => {
+  if (initialized) {
+    return bucket;
+  }
 
-try {
-  // Parse chuỗi JSON từ biến môi trường thành Object
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  // Kiểm tra xem biến môi trường có tồn tại không
+  if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.warn('⚠️ FIREBASE_SERVICE_ACCOUNT environment variable is missing - Firebase storage disabled');
+    return null;
+  }
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET 
-  });
+  if (!process.env.FIREBASE_STORAGE_BUCKET) {
+    console.warn('⚠️ FIREBASE_STORAGE_BUCKET environment variable is missing - Firebase storage disabled');
+    return null;
+  }
 
-  console.log('✅ Firebase Admin initialized successfully');
-  console.log(`📦 Storage bucket: ${process.env.FIREBASE_STORAGE_BUCKET}`);
-} catch (error) {
-  console.error('❌ Firebase initialization error:', error.message);
-  throw error;
-}
+  try {
+    // Parse chuỗi JSON từ biến môi trường thành Object
+    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
-const bucket = admin.storage().bucket();
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET 
+    });
 
-module.exports = { bucket };
+    bucket = admin.storage().bucket();
+    initialized = true;
+    
+    console.log('✅ Firebase Admin initialized successfully');
+    console.log(`📦 Storage bucket: ${process.env.FIREBASE_STORAGE_BUCKET}`);
+    
+    return bucket;
+  } catch (error) {
+    console.error('❌ Firebase initialization error:', error.message);
+    return null;
+  }
+};
+
+const getBucket = () => {
+  if (!bucket) {
+    bucket = initializeFirebase();
+  }
+  return bucket;
+};
+
+module.exports = { getBucket, initializeFirebase };

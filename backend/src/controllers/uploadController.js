@@ -1,9 +1,15 @@
-const { bucket } = require('../config/firebase');
+const { getBucket } = require('../config/firebase');
 const path = require('path');
 
 // Hàm helper để upload file lên Firebase Storage
 const uploadToFirebase = async (file, folder = 'osp_uploads') => {
   try {
+    const bucket = getBucket();
+    
+    if (!bucket) {
+      throw new Error('Firebase Storage not initialized. Check FIREBASE_SERVICE_ACCOUNT and FIREBASE_STORAGE_BUCKET environment variables.');
+    }
+    
     if (!file) {
       throw new Error('No file provided');
     }
