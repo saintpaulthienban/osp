@@ -528,7 +528,28 @@ const updateJourneyStage = async (req, res) => {
       return res.status(404).json({ message: "Stage not found" });
     }
 
-    const payload = { ...req.body };
+    // Filter payload to only include allowed fields to prevent validation errors
+    const payload = {};
+    const allowedFields = VocationJourneyModel.allowedFields || [
+      "sister_id",
+      "stage",
+      "start_date",
+      "end_date",
+      "location",
+      "superior",
+      "formation_director",
+      "community_id",
+      "supervisor_id",
+      "notes",
+      "documents",
+    ];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        payload[field] = req.body[field];
+      }
+    });
+
     if (payload.start_date) {
       const parsed = parseDateOnly(payload.start_date);
       if (!parsed) {
@@ -557,7 +578,7 @@ const updateJourneyStage = async (req, res) => {
     const updated = await VocationJourneyModel.update(stageId, payload);
     await logAudit(req, "UPDATE", stageId, existing, updated);
 
-    return res.status(200).json({ success: true, data: updated });
+    return res.status(200).json({ stage: updated });
   } catch (error) {
     console.error("updateJourneyStage error:", error.message);
     return res.status(500).json({ message: "Failed to update journey stage" });
