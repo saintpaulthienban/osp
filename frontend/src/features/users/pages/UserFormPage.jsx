@@ -67,6 +67,7 @@ const UserFormPage = () => {
     phone: "",
     status: "active",
     avatar: "",
+    photo_file: null,
   });
 
   useEffect(() => {
@@ -231,16 +232,15 @@ const UserFormPage = () => {
       // Prepare data for submission
       const submitData = { ...values };
 
-      // If avatar is a File object, we need to handle it differently
-      // For now, skip avatar file upload and just send the data
-      if (
-        submitData.avatar &&
-        typeof submitData.avatar === "object" &&
-        submitData.avatar instanceof File
-      ) {
-        // TODO: Implement file upload to server
-        // For now, remove avatar from submission
+      // Remove photo_file from submitData (will be uploaded separately)
+      delete submitData.photo_file;
+
+      // Special handling for avatar - allow empty string to clear the image
+      if (submitData.avatar && typeof submitData.avatar === "object") {
+        // Defensive guard: skip accidental event objects
         delete submitData.avatar;
+      } else if (submitData.avatar === "") {
+        submitData.avatar = "";
       }
 
       console.log("Sending data to API:", submitData);
@@ -248,8 +248,32 @@ const UserFormPage = () => {
       let response;
       if (isEditMode) {
         response = await userService.update(id, submitData);
+
+        // Upload avatar if a new file was selected
+        if (response.success && values.photo_file) {
+          try {
+            await userService.uploadAvatar(id, values.photo_file);
+          } catch (uploadError) {
+            console.error("Avatar upload failed:", uploadError);
+            toast.warning(
+              "Ảnh đại diện chưa được cập nhật. Thông tin đã lưu nhưng tải ảnh thất bại."
+            );
+          }
+        }
       } else {
         response = await userService.create(submitData);
+
+        // Upload avatar if a new file was selected
+        if (response.success && values.photo_file) {
+          try {
+            await userService.uploadAvatar(response.data.id, values.photo_file);
+          } catch (uploadError) {
+            console.error("Avatar upload failed:", uploadError);
+            toast.warning(
+              "Ảnh đại diện chưa được tải lên. Người dùng đã được tạo nhưng ảnh chưa được lưu."
+            );
+          }
+        }
       }
 
       console.log("API response:", response);
@@ -563,33 +587,25 @@ const UserFormPage = () => {
                   <Col md={12}>
                     <FileUpload
                       label="Ảnh đại diện"
-                      name="avatar"
-                      onChange={(files) => {
-                        if (files && files.length > 0) {
-                          setFieldValue("avatar", files[0]);
-                        }
+                      onChange={(event) => {
+                        const selectedFiles = event?.target?.value || [];
+                        const file =
+                          Array.isArray(selectedFiles) &&
+                          selectedFiles.length > 0
+                            ? selectedFiles[0]
+                            : null;
+                        setFieldValue("photo_file", file);
                       }}
-                      error={errors.avatar}
-                      touched={touched.avatar}
                       accept="image/*"
-                      maxSize={5242880}
+                      maxSize={5 * 1024 * 1024}
                       showPreview={true}
+                      initialPreview={values.avatar}
+                      onRemoveInitial={() => {
+                        setFieldValue("avatar", "");
+                        setFieldValue("photo_file", null);
+                      }}
                       helpText="Chọn ảnh đại diện (tối đa 5MB, định dạng: JPG, PNG, GIF)"
                     />
-                    {values.avatar && typeof values.avatar === "string" && (
-                      <div className="mt-2">
-                        <img
-                          src={values.avatar}
-                          alt="Avatar hiện tại"
-                          style={{
-                            width: "100px",
-                            height: "100px",
-                            objectFit: "cover",
-                            borderRadius: "8px",
-                          }}
-                        />
-                      </div>
-                    )}
                   </Col>
                 </Row>
               </Card.Body>

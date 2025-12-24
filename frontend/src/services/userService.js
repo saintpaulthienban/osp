@@ -404,6 +404,34 @@ const userService = {
       };
     }
   },
+
+  /**
+   * Upload avatar for user
+   * @param {string|number} id - User ID
+   * @param {File} file - Image file
+   * @returns {Promise}
+   */
+  uploadAvatar: async (id, file) => {
+    try {
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      const response = await api.post(
+        API_ENDPOINTS.USER.UPLOAD_AVATAR
+          ? API_ENDPOINTS.USER.UPLOAD_AVATAR(id)
+          : `/users/${id}/avatar`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
 
 export default userService;

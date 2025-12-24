@@ -155,6 +155,7 @@ export const API_ENDPOINTS = {
     UPDATE_PROFILE: "/users/profile",
     CHANGE_PASSWORD: "/users/change-password",
     CHANGE_AVATAR: "/users/avatar",
+    UPLOAD_AVATAR: (id) => `/users/${id}/avatar`,
   },
 
   // ============================================
