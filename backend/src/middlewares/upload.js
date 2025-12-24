@@ -25,30 +25,6 @@ const createUploader = ({ allowedMimeTypes, fileSize }) =>
   });
 
 const photoUploader = createUploader({
-  directory: PHOTO_DIR,
-  allowedMimeTypes: photoMimeTypes,
-  fileSize: 5 * 1024 * 1024,
-});
-
-const documentUploader = createUploader({
-  directory: DOCUMENT_DIR,
-  allowedMimeTypes: documentMimeTypes,
-  fileSize: 10 * 1024 * 1024,
-});
-
-const certificateUploader = createUploader({
-  directory: CERTIFICATE_DIR,
-  allowedMimeTypes: [...documentMimeTypes, ...photoMimeTypes],
-  fileSize: 10 * 1024 * 1024,
-});
-
-const decisionUploader = createUploader({
-  directory: DECISION_DIR,
-  allowedMimeTypes: [...documentMimeTypes, ...photoMimeTypes],
-  fileSize: 10 * 1024 * 1024,
-});
-
-const photoUploader = createUploader({
   allowedMimeTypes: photoMimeTypes,
   fileSize: 5 * 1024 * 1024, // 5MB for photos
 });
@@ -98,6 +74,15 @@ const uploadMultiple = handleUploadErrors(
 );
 const uploadDocuments = handleUploadErrors(
   certificateUploader.array("documents", 10)
+);
+
+module.exports = {
+  uploadPhoto,
+  uploadDocument,
+  uploadDecision,
+  uploadMultiple,
+  uploadDocuments,
+};
 );
 
 module.exports = {
