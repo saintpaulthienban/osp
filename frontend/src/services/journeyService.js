@@ -41,6 +41,10 @@ const journeyService = {
   getById: async (id) => {
     try {
       const response = await api.get(JOURNEY_ENDPOINTS.DETAIL(id));
+      // Backend returns { success: true, data: {...} }
+      if (response.data && response.data.success) {
+        return response.data; // Already in correct format
+      }
       return {
         success: true,
         data: response.data,
@@ -98,6 +102,10 @@ const journeyService = {
   create: async (data) => {
     try {
       const response = await api.post(JOURNEY_ENDPOINTS.CREATE, data);
+      // Backend returns { success: true, data: {...} }
+      if (response.data && response.data.success) {
+        return response.data; // Already in correct format
+      }
       return {
         success: true,
         data: response.data,
@@ -115,6 +123,10 @@ const journeyService = {
   update: async (id, data) => {
     try {
       const response = await api.put(JOURNEY_ENDPOINTS.UPDATE(id), data);
+      // Backend returns { success: true, data: {...} }
+      if (response.data && response.data.success) {
+        return response.data; // Already in correct format
+      }
       return {
         success: true,
         data: response.data,

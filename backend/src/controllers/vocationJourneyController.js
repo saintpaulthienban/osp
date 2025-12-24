@@ -557,7 +557,7 @@ const updateJourneyStage = async (req, res) => {
     const updated = await VocationJourneyModel.update(stageId, payload);
     await logAudit(req, "UPDATE", stageId, existing, updated);
 
-    return res.status(200).json({ stage: updated });
+    return res.status(200).json({ success: true, data: updated });
   } catch (error) {
     console.error("updateJourneyStage error:", error.message);
     return res.status(500).json({ message: "Failed to update journey stage" });
