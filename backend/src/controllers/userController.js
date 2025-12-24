@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const UserModel = require("../models/UserModel");
 const AuditLogModel = require("../models/AuditLogModel");
+const { uploadToFirebase } = require("./uploadController");
 
 // Validation helpers
 const isValidEmail = (email) => {
@@ -1042,6 +1043,66 @@ const updateDataScope = async (req, res) => {
   }
 };
 
+/**
+ * Upload user avatar
+ */
+const uploadUserAvatar = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    console.log(`📸 Uploading avatar for user ID: ${id}`);
+    console.log(
+      `📁 File received:`,
+      req.file
+        ? {
+            originalname: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            buffer: req.file.buffer ? "Buffer present" : "No buffer",
+          }
+        : "No file"
+    );
+
+    const user = await UserModel.findById(id);
+    if (!user) {
+      console.error(`❌ User not found: ${id}`);
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!req.file) {
+      console.error(`❌ No file in request`);
+      return res.status(400).json({ message: "Avatar file is required" });
+    }
+
+    // Upload to Firebase
+    console.log(`🚀 Starting Firebase upload...`);
+    const uploadResult = await uploadToFirebase(req.file, "avatars");
+    console.log(`✅ Firebase upload successful:`, uploadResult);
+
+    const avatarUrl = uploadResult.url;
+
+    console.log(`💾 Updating database with avatar URL...`);
+    const updated = await UserModel.update(id, { avatar: avatarUrl });
+    await logAudit(req, "UPLOAD_AVATAR", id, user, updated);
+
+    console.log(`✅ Avatar update complete for user ID: ${id}`);
+    return res.status(200).json({ 
+      success: true,
+      avatarUrl,
+      message: "Avatar uploaded successfully"
+    });
+  } catch (error) {
+    console.error("❌ uploadUserAvatar error:", error);
+    console.error("Error stack:", error.stack);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to upload avatar",
+      error: error.message,
+      details: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -1060,4 +1121,5 @@ module.exports = {
   assignCommunities,
   removeCommunity,
   updateDataScope,
+  uploadUserAvatar,
 };

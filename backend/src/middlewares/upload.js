@@ -71,6 +71,7 @@ const handleUploadErrors = (uploader) => (req, res, next) => {
 };
 
 const uploadPhoto = handleUploadErrors(photoUploader.single("photo"));
+const uploadAvatar = handleUploadErrors(photoUploader.single("avatar"));
 const uploadDocument = handleUploadErrors(documentUploader.single("document"));
 const uploadDecision = handleUploadErrors(
   decisionUploader.single("decision_file")
@@ -84,6 +85,7 @@ const uploadDocuments = handleUploadErrors(
 
 module.exports = {
   uploadPhoto,
+  uploadAvatar,
   uploadDocument,
   uploadDecision,
   uploadMultiple,

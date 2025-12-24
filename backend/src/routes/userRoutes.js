@@ -10,6 +10,7 @@ const {
   validateUserCreate,
   handleValidationErrors,
 } = require("../middlewares/validation");
+const { uploadAvatar } = require("../middlewares/upload");
 
 const router = express.Router();
 
@@ -40,6 +41,14 @@ router.post(
 );
 
 router.put("/:id", checkPermission("users.edit"), userController.updateUser);
+
+// Avatar upload
+router.post(
+  "/:id/avatar",
+  checkPermission("users.edit"),
+  uploadAvatar,
+  userController.uploadUserAvatar
+);
 
 router.delete(
   "/:id",
