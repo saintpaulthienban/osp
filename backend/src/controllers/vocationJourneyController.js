@@ -528,9 +528,8 @@ const updateJourneyStage = async (req, res) => {
       return res.status(404).json({ message: "Stage not found" });
     }
 
-    // Filter payload to only include allowed fields to prevent validation errors
-    const payload = {};
-    const allowedFields = VocationJourneyModel.allowedFields || [
+    // Filter allowed fields and handle empty strings
+    const allowedFields = [
       "sister_id",
       "stage",
       "start_date",
@@ -544,9 +543,15 @@ const updateJourneyStage = async (req, res) => {
       "documents",
     ];
 
+    const payload = {};
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
-        payload[field] = req.body[field];
+        // Convert empty strings to null for nullable fields
+        if (req.body[field] === "") {
+          payload[field] = null;
+        } else {
+          payload[field] = req.body[field];
+        }
       }
     });
 
@@ -569,10 +574,8 @@ const updateJourneyStage = async (req, res) => {
       payload.end_date = formatDateOnly(parsedEnd);
     }
     // Stringify documents if provided
-    if (payload.documents !== undefined) {
-      payload.documents = payload.documents
-        ? JSON.stringify(payload.documents)
-        : null;
+    if (payload.documents !== undefined && payload.documents !== null) {
+      payload.documents = JSON.stringify(payload.documents);
     }
 
     const updated = await VocationJourneyModel.update(stageId, payload);
