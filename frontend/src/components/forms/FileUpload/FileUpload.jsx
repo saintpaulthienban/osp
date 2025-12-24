@@ -24,7 +24,9 @@ const FileUpload = ({
 }) => {
   const [files, setFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
-  const [showInitialPreview, setShowInitialPreview] = useState(!!initialPreview);
+  const [showInitialPreview, setShowInitialPreview] = useState(
+    !!initialPreview
+  );
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
 
