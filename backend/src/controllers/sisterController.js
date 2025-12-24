@@ -531,8 +531,18 @@ const removeOldPhoto = (photoUrl) => {
 const updateSisterPhoto = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    console.log(`📸 Uploading photo for sister ID: ${id}`);
+    console.log(`📁 File received:`, req.file ? {
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      buffer: req.file.buffer ? 'Buffer present' : 'No buffer'
+    } : 'No file');
+    
     const sister = await SisterModel.findById(id);
     if (!sister) {
+      console.error(`❌ Sister not found: ${id}`);
       return res.status(404).json({ message: "Sister not found" });
     }
 
@@ -545,6 +555,7 @@ const updateSisterPhoto = async (req, res) => {
     );
 
     if (!hasAccess) {
+      console.error(`❌ Access denied for sister ID: ${id}`);
       return res.status(403).json({
         success: false,
         message: "You don't have permission to update this sister's photo",
@@ -552,20 +563,31 @@ const updateSisterPhoto = async (req, res) => {
     }
 
     if (!req.file) {
+      console.error(`❌ No file in request`);
       return res.status(400).json({ message: "Photo file is required" });
     }
 
     // Upload to Firebase
+    console.log(`🚀 Starting Firebase upload...`);
     const uploadResult = await uploadToFirebase(req.file, 'photos');
+    console.log(`✅ Firebase upload successful:`, uploadResult);
+    
     const photoUrl = uploadResult.url;
 
+    console.log(`💾 Updating database with photo URL...`);
     const updated = await SisterModel.update(id, { photo_url: photoUrl });
     await logAudit(req, "UPDATE", id, sister, updated);
 
+    console.log(`✅ Photo update complete for sister ID: ${id}`);
     return res.status(200).json({ photoUrl });
   } catch (error) {
-    console.error("updateSisterPhoto error:", error.message);
-    return res.status(500).json({ message: "Failed to update photo" });
+    console.error("❌ updateSisterPhoto error:", error);
+    console.error("Error stack:", error.stack);
+    return res.status(500).json({ 
+      message: "Failed to update photo",
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
