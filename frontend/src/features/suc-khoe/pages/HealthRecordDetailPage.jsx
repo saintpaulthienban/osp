@@ -407,9 +407,12 @@ const HealthRecordDetailPage = () => {
                           <div className="d-flex align-items-center">
                             <i className="fas fa-file-pdf text-danger me-3 fs-4"></i>
                             <div>
-                              <div className="fw-semibold">{doc.name || `Tài liệu ${index + 1}`}</div>
+                              <div className="fw-semibold">
+                                {doc.name || `Tài liệu ${index + 1}`}
+                              </div>
                               <small className="text-muted">
-                                {doc.size && `${(doc.size / 1024).toFixed(2)} KB`}
+                                {doc.size &&
+                                  `${(doc.size / 1024).toFixed(2)} KB`}
                                 {doc.uploaded_at &&
                                   ` • ${formatDate(doc.uploaded_at)}`}
                               </small>

@@ -307,7 +307,9 @@ const EducationDetailPage = () => {
                         <div className="d-flex align-items-center">
                           <i className="fas fa-file-pdf text-danger me-3 fs-4"></i>
                           <div>
-                            <div className="fw-semibold">{doc.name || "Tài liệu"}</div>
+                            <div className="fw-semibold">
+                              {doc.name || "Tài liệu"}
+                            </div>
                             <small className="text-muted">
                               {doc.size && `${(doc.size / 1024).toFixed(2)} KB`}
                               {doc.uploaded_at &&
