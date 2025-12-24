@@ -3,48 +3,59 @@ const path = require('path');
 
 // Hàm helper để upload file lên Firebase Storage
 const uploadToFirebase = async (file, folder = 'osp_uploads') => {
-  if (!file) {
-    throw new Error('No file provided');
+  try {
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    console.log(`📤 Uploading file: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+
+    // Tạo tên file mới (giữ nguyên đuôi file gốc)
+    const fileExtension = path.extname(file.originalname);
+    const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExtension}`;
+    
+    // Tạo reference trên Firebase
+    const blob = bucket.file(`${folder}/${fileName}`);
+    
+    const blobStream = blob.createWriteStream({
+      metadata: {
+        contentType: file.mimetype,
+      },
+    });
+
+    return new Promise((resolve, reject) => {
+      blobStream.on('error', (err) => {
+        console.error(`❌ Upload error for ${file.originalname}:`, err.message);
+        reject(err);
+      });
+
+      blobStream.on('finish', async () => {
+        try {
+          // Lấy đường dẫn tải file (Signed URL)
+          const [url] = await blob.getSignedUrl({
+            action: 'read',
+            expires: '01-01-2100',
+          });
+          
+          console.log(`✅ Upload successful: ${file.originalname} -> ${fileName}`);
+          
+          resolve({
+            url,
+            originalName: file.originalname,
+            fileName,
+          });
+        } catch (error) {
+          console.error(`❌ Error getting signed URL for ${file.originalname}:`, error.message);
+          reject(error);
+        }
+      });
+
+      blobStream.end(file.buffer);
+    });
+  } catch (error) {
+    console.error(`❌ uploadToFirebase error:`, error.message);
+    throw error;
   }
-
-  // Tạo tên file mới (giữ nguyên đuôi file gốc)
-  const fileExtension = path.extname(file.originalname);
-  const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExtension}`;
-  
-  // Tạo reference trên Firebase
-  const blob = bucket.file(`${folder}/${fileName}`);
-  
-  const blobStream = blob.createWriteStream({
-    metadata: {
-      contentType: file.mimetype,
-    },
-  });
-
-  return new Promise((resolve, reject) => {
-    blobStream.on('error', (err) => {
-      reject(err);
-    });
-
-    blobStream.on('finish', async () => {
-      try {
-        // Lấy đường dẫn tải file (Signed URL)
-        const [url] = await blob.getSignedUrl({
-          action: 'read',
-          expires: '01-01-2100',
-        });
-        
-        resolve({
-          url,
-          originalName: file.originalname,
-          fileName,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    blobStream.end(file.buffer);
-  });
 };
 
 // Hàm xử lý upload single file
