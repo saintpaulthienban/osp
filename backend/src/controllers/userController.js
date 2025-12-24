@@ -1086,10 +1086,10 @@ const uploadUserAvatar = async (req, res) => {
     await logAudit(req, "UPLOAD_AVATAR", id, user, updated);
 
     console.log(`✅ Avatar update complete for user ID: ${id}`);
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       avatarUrl,
-      message: "Avatar uploaded successfully"
+      message: "Avatar uploaded successfully",
     });
   } catch (error) {
     console.error("❌ uploadUserAvatar error:", error);
