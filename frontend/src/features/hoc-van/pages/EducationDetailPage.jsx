@@ -201,14 +201,9 @@ const EducationDetailPage = () => {
                 <Col md={6}>
                   <div className="text-muted">Nữ tu</div>
                   <div className="fw-semibold">
-                    {education.religious_name ||
-                      education.sister_name ||
-                      "Không rõ"}
-                    {education.sister_code && (
-                      <span className="text-muted ms-2">
-                        ({education.sister_code})
-                      </span>
-                    )}
+                    {[education.religious_name, education.sister_name]
+                      .filter(Boolean)
+                      .join(" ") || "Không rõ"}
                   </div>
                 </Col>
                 <Col md={6} className="text-md-end mt-3 mt-md-0">
