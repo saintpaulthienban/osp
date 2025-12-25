@@ -156,17 +156,18 @@ const getAllSisters = async (req, res) => {
         .replace(/\bdate_of_birth\b/g, "s.date_of_birth");
     });
 
-    // Apply data scope filter - USE community_assignments instead of current_community_id
+    // Apply data scope filter - USE vocation_journey instead of community_assignments
+    // Join with vocation_journey to get current community and filter by scope
     const {
       whereClause: scopeWhere,
       params: scopeParams,
       needsJoin,
     } = applyScopeFilter(req.userScope, "s", {
-      communityJoinTable: "community_assignments",
+      communityJoinTable: "vocation_journey",
       communityJoinColumn: "sister_id",
-      communityIdColumn: "ca.community_id",
-      currentOnly: true, // Only current assignments (end_date IS NULL)
-      useJoin: true, // Use JOIN with community_assignments
+      communityIdColumn: "vj_scope.community_id",
+      currentOnly: false, // Use subquery to get latest journey
+      useJoin: true,
     });
 
     console.log("[SisterController] userScope:", req.userScope);
@@ -174,11 +175,26 @@ const getAllSisters = async (req, res) => {
     console.log("[SisterController] scopeParams:", scopeParams);
     console.log("[SisterController] needsJoin:", needsJoin);
 
-    // Build JOIN clause for community_assignments if needed
+    // Build JOIN clause for vocation_journey if needed for scope filtering
     let joinClause = "";
     if (needsJoin && scopeWhere) {
-      joinClause =
-        "INNER JOIN community_assignments ca ON s.id = ca.sister_id AND (ca.end_date IS NULL OR ca.end_date >= CURDATE())";
+      // Join with latest vocation_journey for scope filtering
+      joinClause = `
+        INNER JOIN (
+          SELECT vj1.sister_id, vj1.community_id
+          FROM vocation_journey vj1
+          WHERE vj1.id = (
+            SELECT vj2.id 
+            FROM vocation_journey vj2 
+            WHERE vj2.sister_id = vj1.sister_id 
+            ORDER BY 
+              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+              vj2.start_date DESC,
+              vj2.id DESC
+            LIMIT 1
+          )
+        ) vj_scope ON s.id = vj_scope.sister_id
+      `;
       prefixedClauses.push(scopeWhere);
       params.push(...scopeParams);
     } else if (scopeWhere) {
