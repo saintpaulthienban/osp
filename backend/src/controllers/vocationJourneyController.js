@@ -256,10 +256,8 @@ const getJourneyById = async (req, res) => {
                  FROM vocation_journey vj2 
                  LEFT JOIN communities c2 ON vj2.community_id = c2.id
                  WHERE vj2.sister_id = s.id 
+                   AND vj2.end_date IS NULL
                    AND vj2.community_id IS NOT NULL
-                 ORDER BY 
-                   CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
-                   vj2.start_date DESC
                  LIMIT 1
                ) as sister_community,
                c.name as community_name,
@@ -287,10 +285,8 @@ const getJourneyById = async (req, res) => {
                  FROM vocation_journey vj2 
                  LEFT JOIN communities c2 ON vj2.community_id = c2.id
                  WHERE vj2.sister_id = s.id 
+                   AND vj2.end_date IS NULL
                    AND vj2.community_id IS NOT NULL
-                 ORDER BY 
-                   CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
-                   vj2.start_date DESC
                  LIMIT 1
                ) as sister_community,
                c.name as community_name,

@@ -178,21 +178,12 @@ const getAllSisters = async (req, res) => {
     // Build JOIN clause for vocation_journey if needed for scope filtering
     let joinClause = "";
     if (needsJoin && scopeWhere) {
-      // Join with latest vocation_journey for scope filtering
+      // Join ONLY with current vocation_journey (end_date IS NULL)
       joinClause = `
         INNER JOIN (
-          SELECT vj1.sister_id, vj1.community_id
-          FROM vocation_journey vj1
-          WHERE vj1.id = (
-            SELECT vj2.id 
-            FROM vocation_journey vj2 
-            WHERE vj2.sister_id = vj1.sister_id 
-            ORDER BY 
-              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
-              vj2.start_date DESC,
-              vj2.id DESC
-            LIMIT 1
-          )
+          SELECT sister_id, community_id
+          FROM vocation_journey
+          WHERE end_date IS NULL
         ) vj_scope ON s.id = vj_scope.sister_id
       `;
       prefixedClauses.push(scopeWhere);
@@ -219,7 +210,7 @@ const getAllSisters = async (req, res) => {
     console.log("[SisterController] total sisters found:", total);
 
     // JOIN with communities and vocation_journey to get current stage and community
-    // Ưu tiên giai đoạn chưa kết thúc (end_date IS NULL), sau đó lấy giai đoạn mới nhất theo start_date
+    // CHỈ lấy giai đoạn đang diễn ra (end_date IS NULL), không fallback về giai đoạn cũ
     const rows = await SisterModel.executeQuery(
       `SELECT DISTINCT s.*, 
               c.name AS current_community_name,
@@ -230,18 +221,9 @@ const getAllSisters = async (req, res) => {
        ${joinClause}
        LEFT JOIN communities c ON s.current_community_id = c.id
        LEFT JOIN (
-         SELECT vj1.sister_id, vj1.stage, vj1.community_id
-         FROM vocation_journey vj1
-         WHERE vj1.id = (
-           SELECT vj2.id 
-           FROM vocation_journey vj2 
-           WHERE vj2.sister_id = vj1.sister_id 
-           ORDER BY 
-             CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
-             vj2.start_date DESC,
-             vj2.id DESC
-           LIMIT 1
-         )
+         SELECT sister_id, stage, community_id
+         FROM vocation_journey
+         WHERE end_date IS NULL
        ) vj_latest ON s.id = vj_latest.sister_id
        LEFT JOIN communities c_journey ON vj_latest.community_id = c_journey.id
        ${whereClause} 
