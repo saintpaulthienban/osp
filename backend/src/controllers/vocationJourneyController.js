@@ -85,17 +85,30 @@ const getAllJourneys = async (req, res) => {
       params.push(searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
-    // Add scope filter - filter by journey's community directly
+    // Add scope filter - filter by sister's CURRENT community (end_date IS NULL)
+    // This ensures that ALL journeys of a sister are shown based on her current community
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
-      "vj",
+      "s",
       {
-        communityIdField: "vj.community_id",
-        useJoin: false,
+        communityJoinTable: "vocation_journey",
+        communityJoinColumn: "sister_id",
+        communityIdColumn: "vj_current.community_id",
+        currentOnly: false,
+        useJoin: true,
       }
     );
 
+    let currentCommunityJoin = "";
     if (scopeWhere) {
+      // Join with current journey (end_date IS NULL) to get sister's current community
+      currentCommunityJoin = `
+        LEFT JOIN (
+          SELECT sister_id, community_id
+          FROM vocation_journey
+          WHERE end_date IS NULL
+        ) vj_current ON s.id = vj_current.sister_id
+      `;
       whereClauses.push(scopeWhere);
       params.push(...scopeParams);
     }
@@ -140,6 +153,7 @@ const getAllJourneys = async (req, res) => {
       SELECT COUNT(*) as total 
       FROM vocation_journey vj 
       LEFT JOIN sisters s ON vj.sister_id = s.id
+      ${currentCommunityJoin}
       WHERE ${whereClause}
     `;
     const countResult = await VocationJourneyModel.executeQuery(countSql, [
@@ -160,6 +174,7 @@ const getAllJourneys = async (req, res) => {
                c.name as community_name
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
+        ${currentCommunityJoin}
         LEFT JOIN journey_stages js ON vj.stage COLLATE utf8mb4_unicode_ci = js.code COLLATE utf8mb4_unicode_ci
         LEFT JOIN communities c ON vj.community_id = c.id
         WHERE ${whereClause}
@@ -177,6 +192,7 @@ const getAllJourneys = async (req, res) => {
                c.name as community_name
         FROM vocation_journey vj
         LEFT JOIN sisters s ON vj.sister_id = s.id
+        ${currentCommunityJoin}
         LEFT JOIN communities c ON vj.community_id = c.id
         WHERE ${whereClause}
         ORDER BY ${orderByClause}
