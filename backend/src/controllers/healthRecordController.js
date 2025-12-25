@@ -372,6 +372,7 @@ const getAllHealthRecords = async (req, res) => {
         s.saint_name as sister_saint_name
       FROM health_records hr
       LEFT JOIN sisters s ON hr.sister_id = s.id
+      ${joinClause}
       WHERE ${whereClause}
       ORDER BY hr.${safeSort} ${safeOrder}
       LIMIT ? OFFSET ?
