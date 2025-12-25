@@ -210,7 +210,12 @@ const DepartureDetailPage = () => {
                     <div className="departure-detail-item">
                       <div className="label">Người duyệt</div>
                       <div className="value">
-                        {departure.approved_by || "--"}
+                        {[
+                          departure.approver_saint_name,
+                          departure.approver_birth_name,
+                        ]
+                          .filter(Boolean)
+                          .join(" ") || "--"}
                       </div>
                     </div>
                   </Col>

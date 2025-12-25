@@ -149,8 +149,19 @@ const getDepartureRecordById = async (req, res) => {
     // Get sister info
     const sister = await SisterModel.findById(record.sister_id);
 
+    // Get approver info if approved_by is set
+    let approver = null;
+    if (record.approved_by) {
+      approver = await SisterModel.findById(record.approved_by);
+    }
+
     return res.status(200).json({
       ...record,
+      saint_name: sister?.saint_name || null,
+      birth_name: sister?.birth_name || null,
+      sister_code: sister?.code || null,
+      approver_saint_name: approver?.saint_name || null,
+      approver_birth_name: approver?.birth_name || null,
       sister: sister
         ? {
             id: sister.id,
