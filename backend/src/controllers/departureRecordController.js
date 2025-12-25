@@ -149,10 +149,14 @@ const getDepartureRecordById = async (req, res) => {
     // Get sister info
     const sister = await SisterModel.findById(record.sister_id);
 
-    // Get approver info if approved_by is set
+    // Get approver info if approved_by is set and is a valid number
     let approver = null;
-    if (record.approved_by) {
-      approver = await SisterModel.findById(record.approved_by);
+    if (record.approved_by && !isNaN(parseInt(record.approved_by))) {
+      try {
+        approver = await SisterModel.findById(parseInt(record.approved_by));
+      } catch (err) {
+        console.warn("Failed to fetch approver:", err.message);
+      }
     }
 
     return res.status(200).json({
