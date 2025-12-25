@@ -184,6 +184,12 @@ const updateHealthRecord = async (req, res) => {
 
     // Format dates for MySQL DATE columns (convert ISO strings to YYYY-MM-DD)
     const payload = { ...req.body };
+    
+    // Remove system-managed fields that shouldn't be updated by client
+    delete payload.id;
+    delete payload.created_at;
+    delete payload.updated_at;
+    
     if (payload.checkup_date && typeof payload.checkup_date === 'string') {
       payload.checkup_date = payload.checkup_date.split('T')[0];
     }
