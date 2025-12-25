@@ -139,6 +139,14 @@ const addHealthRecord = async (req, res) => {
       documents: req.body.documents || null,
     };
 
+    // Format dates for MySQL DATE columns (convert ISO strings to YYYY-MM-DD)
+    if (payload.checkup_date && typeof payload.checkup_date === 'string') {
+      payload.checkup_date = payload.checkup_date.split('T')[0];
+    }
+    if (payload.next_checkup_date && typeof payload.next_checkup_date === 'string') {
+      payload.next_checkup_date = payload.next_checkup_date.split('T')[0];
+    }
+
     const created = await HealthRecordModel.create(payload);
     await logAudit(req, "CREATE", created.id, null, created);
 
@@ -174,7 +182,16 @@ const updateHealthRecord = async (req, res) => {
       }
     }
 
-    const updated = await HealthRecordModel.update(id, req.body);
+    // Format dates for MySQL DATE columns (convert ISO strings to YYYY-MM-DD)
+    const payload = { ...req.body };
+    if (payload.checkup_date && typeof payload.checkup_date === 'string') {
+      payload.checkup_date = payload.checkup_date.split('T')[0];
+    }
+    if (payload.next_checkup_date && typeof payload.next_checkup_date === 'string') {
+      payload.next_checkup_date = payload.next_checkup_date.split('T')[0];
+    }
+
+    const updated = await HealthRecordModel.update(id, payload);
     await logAudit(req, "UPDATE", id, existing, updated);
 
     return res.status(200).json({ record: updated });
