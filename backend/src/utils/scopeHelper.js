@@ -215,7 +215,7 @@ async function checkScopeAccess(
 }
 
 /**
- * Get all community IDs for a sister from community_assignments
+ * Get all community IDs for a sister from vocation_journey (latest journey)
  * Use this as callback for checkScopeAccess
  *
  * @param {number} sisterId - The sister's ID
@@ -223,13 +223,21 @@ async function checkScopeAccess(
  */
 async function getSisterCommunityIds(sisterId) {
   const db = require("../config/database");
+  // Get community from latest vocation_journey entry
   const [rows] = await db.query(
-    `SELECT DISTINCT community_id 
-     FROM community_assignments 
-     WHERE sister_id = ? AND (end_date IS NULL OR end_date >= CURDATE())`,
+    `SELECT community_id 
+     FROM vocation_journey 
+     WHERE sister_id = ? 
+     ORDER BY 
+       CASE WHEN end_date IS NULL THEN 0 ELSE 1 END,
+       start_date DESC,
+       id DESC
+     LIMIT 1`,
     [sisterId]
   );
-  return rows.map((r) => r.community_id);
+  
+  // Return array of community IDs (may be empty if no journey or null community_id)
+  return rows.length > 0 && rows[0].community_id ? [rows[0].community_id] : [];
 }
 
 module.exports = {
