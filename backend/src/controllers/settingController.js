@@ -309,7 +309,7 @@ const getBackups = async (req, res) => {
  */
 const createBackup = async (req, res) => {
   let tempFilePath = null;
-  
+
   try {
     const userId = req.user.id;
     const timestamp = new Date()
@@ -317,23 +317,24 @@ const createBackup = async (req, res) => {
       .replace(/[:-]/g, "")
       .slice(0, 15);
     const filename = `backup_${timestamp}.sql`;
-    
+
     // Use /tmp directory for temporary file (Railway-compatible)
     tempFilePath = path.join("/tmp", filename);
-    
+
     // Get database config - support both URL and individual params
     let dbConfig;
-    
+
     if (process.env.MYSQL_URL || process.env.DATABASE_URL) {
       // Parse connection URL (Railway format: mysql://user:pass@host:port/database)
       const connectionUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
-      const urlPattern = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+?)(\?.*)?$/;
+      const urlPattern =
+        /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+?)(\?.*)?$/;
       const match = connectionUrl.match(urlPattern);
-      
+
       if (!match) {
         throw new Error("Invalid MYSQL_URL format");
       }
-      
+
       dbConfig = {
         host: match[3],
         port: parseInt(match[4]),
@@ -357,7 +358,7 @@ const createBackup = async (req, res) => {
       host: dbConfig.host,
       port: dbConfig.port,
       database: dbConfig.database,
-      user: dbConfig.user
+      user: dbConfig.user,
     });
 
     // Use mysqldump library to create SQL dump
@@ -395,7 +396,7 @@ const createBackup = async (req, res) => {
     if (bucket) {
       try {
         const firebaseDestination = `backups/${filename}`;
-        
+
         await bucket.upload(tempFilePath, {
           destination: firebaseDestination,
           metadata: {
@@ -418,10 +419,13 @@ const createBackup = async (req, res) => {
 
         downloadUrl = url;
         storagePath = firebaseDestination;
-        
+
         console.log("Firebase download URL generated");
       } catch (uploadError) {
-        console.warn("Firebase upload failed, falling back to local storage:", uploadError.message);
+        console.warn(
+          "Firebase upload failed, falling back to local storage:",
+          uploadError.message
+        );
       }
     } else {
       console.warn("Firebase not configured, storing locally only");
@@ -431,10 +435,10 @@ const createBackup = async (req, res) => {
     if (!storagePath) {
       const backupDir = path.join(__dirname, "../../backups");
       await fs.mkdir(backupDir, { recursive: true });
-      
+
       const localPath = path.join(backupDir, filename);
       await fs.copyFile(tempFilePath, localPath);
-      
+
       storagePath = `backups/${filename}`;
       console.log("Backup saved locally:", localPath);
     }
@@ -449,12 +453,32 @@ const createBackup = async (req, res) => {
       console.warn("Failed to cleanup temp file:", cleanupError.message);
     }
 
-    // Insert backup record
-    const [result] = await db.execute(
-      `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by, download_url)
-       VALUES (?, ?, ?, 'manual', 'completed', ?, ?)`,
-      [filename, storagePath, fileSize, userId, downloadUrl]
-    );
+    // Insert backup record. Some deployments may not have `download_url` column
+    // (migration may not be applied). Check INFORMATION_SCHEMA and insert
+    // conditionally to avoid ER_BAD_FIELD_ERROR.
+    let insertSql;
+    let insertParams;
+    try {
+      const [colRows] = await db.execute(
+        `SELECT COUNT(*) AS cnt FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'backups' AND COLUMN_NAME = 'download_url'`,
+        [dbConfig.database]
+      );
+      const hasDownloadUrl = Array.isArray(colRows) && colRows[0] && Number(colRows[0].cnt) > 0;
+
+      if (hasDownloadUrl) {
+        insertSql = `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by, download_url) VALUES (?, ?, ?, 'manual', 'completed', ?, ?)`;
+        insertParams = [filename, storagePath, fileSize, userId, downloadUrl];
+      } else {
+        insertSql = `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by) VALUES (?, ?, ?, 'manual', 'completed', ?)`;
+        insertParams = [filename, storagePath, fileSize, userId];
+      }
+    } catch (schemaCheckErr) {
+      // If INFORMATION_SCHEMA query fails for any reason, fallback to insert without download_url
+      insertSql = `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by) VALUES (?, ?, ?, 'manual', 'completed', ?)`;
+      insertParams = [filename, storagePath, fileSize, userId];
+    }
+
+    const [result] = await db.execute(insertSql, insertParams);
 
     res.json({
       success: true,
@@ -469,7 +493,7 @@ const createBackup = async (req, res) => {
     });
   } catch (error) {
     console.error("createBackup error:", error);
-    
+
     // Clean up temp file on error
     try {
       if (tempFilePath && fsSync.existsSync(tempFilePath)) {
@@ -478,10 +502,10 @@ const createBackup = async (req, res) => {
     } catch (cleanupError) {
       // Ignore cleanup errors
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: "Lỗi khi tạo backup: " + error.message 
+
+    res.status(500).json({
+      success: false,
+      message: "Lỗi khi tạo backup: " + error.message,
     });
   }
 };
@@ -529,7 +553,9 @@ const restoreBackup = async (req, res) => {
     };
 
     // Build mysql restore command
-    const mysqlCmd = `mysql -h ${dbConfig.host} -u ${dbConfig.user} ${dbConfig.password ? `-p${dbConfig.password}` : ""} ${dbConfig.database} < "${fullPath}"`;
+    const mysqlCmd = `mysql -h ${dbConfig.host} -u ${dbConfig.user} ${
+      dbConfig.password ? `-p${dbConfig.password}` : ""
+    } ${dbConfig.database} < "${fullPath}"`;
 
     // Execute restore
     await execPromise(mysqlCmd);
@@ -552,7 +578,10 @@ const restoreBackup = async (req, res) => {
     console.error("restoreBackup error:", error);
     res
       .status(500)
-      .json({ success: false, message: "Lỗi khi khôi phục backup: " + error.message });
+      .json({
+        success: false,
+        message: "Lỗi khi khôi phục backup: " + error.message,
+      });
   }
 };
 
