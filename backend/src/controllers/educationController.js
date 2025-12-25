@@ -267,17 +267,37 @@ const getStatisticsByLevel = async (req, res) => {
     const whereClauses = [];
     const params = [];
 
-    // Apply data scope filter
+    // Apply data scope filter - join with latest vocation_journey
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
       "s",
       {
-        communityIdField: "s.current_community_id",
-        useJoin: false,
+        communityJoinTable: "vocation_journey",
+        communityJoinColumn: "sister_id",
+        communityIdColumn: "vj_scope.community_id",
+        currentOnly: false,
+        useJoin: true,
       }
     );
 
+    let joinClause = "";
     if (scopeWhere) {
+      joinClause = `
+        LEFT JOIN (
+          SELECT vj1.sister_id, vj1.community_id
+          FROM vocation_journey vj1
+          WHERE vj1.id = (
+            SELECT vj2.id 
+            FROM vocation_journey vj2 
+            WHERE vj2.sister_id = vj1.sister_id 
+            ORDER BY 
+              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+              vj2.start_date DESC,
+              vj2.id DESC
+            LIMIT 1
+          )
+        ) vj_scope ON s.id = vj_scope.sister_id
+      `;
       whereClauses.push(scopeWhere);
       params.push(...scopeParams);
     }
@@ -290,6 +310,7 @@ const getStatisticsByLevel = async (req, res) => {
       `SELECT e.level, COUNT(*) AS total
        FROM education e
        INNER JOIN sisters s ON e.sister_id = s.id
+       ${joinClause}
        ${whereClause}
        GROUP BY e.level`,
       params
@@ -335,17 +356,38 @@ const getAllEducation = async (req, res) => {
       params.push(status);
     }
 
-    // Apply data scope filter
+    // Apply data scope filter - join with latest vocation_journey to get sister's community
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
       "s",
       {
-        communityIdField: "s.current_community_id",
-        useJoin: false,
+        communityJoinTable: "vocation_journey",
+        communityJoinColumn: "sister_id",
+        communityIdColumn: "vj_scope.community_id",
+        currentOnly: false,
+        useJoin: true,
       }
     );
 
+    let joinClause = "";
     if (scopeWhere) {
+      // Add join for scope filter
+      joinClause = `
+        LEFT JOIN (
+          SELECT vj1.sister_id, vj1.community_id
+          FROM vocation_journey vj1
+          WHERE vj1.id = (
+            SELECT vj2.id 
+            FROM vocation_journey vj2 
+            WHERE vj2.sister_id = vj1.sister_id 
+            ORDER BY 
+              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+              vj2.start_date DESC,
+              vj2.id DESC
+            LIMIT 1
+          )
+        ) vj_scope ON s.id = vj_scope.sister_id
+      `;
       whereClauses.push(scopeWhere);
       params.push(...scopeParams);
     }
@@ -356,6 +398,7 @@ const getAllEducation = async (req, res) => {
     const countResult = await EducationModel.executeQuery(
       `SELECT COUNT(*) as total FROM education e 
        LEFT JOIN sisters s ON e.sister_id = s.id 
+       ${joinClause}
        WHERE ${whereClause}`,
       params
     );
@@ -369,6 +412,7 @@ const getAllEducation = async (req, res) => {
               s.code as sister_code
        FROM education e
        LEFT JOIN sisters s ON e.sister_id = s.id
+       ${joinClause}
        WHERE ${whereClause}
       ORDER BY e.start_date DESC, e.id DESC
        LIMIT ? OFFSET ?`,

@@ -85,12 +85,12 @@ const getAllJourneys = async (req, res) => {
       params.push(searchTerm, searchTerm, searchTerm, searchTerm);
     }
 
-    // Add scope filter
+    // Add scope filter - filter by journey's community directly
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
-      "s",
+      "vj",
       {
-        communityIdField: "s.current_community_id",
+        communityIdField: "vj.community_id",
         useJoin: false,
       }
     );
@@ -529,12 +529,15 @@ const updateJourneyStage = async (req, res) => {
     }
 
     const payload = { ...req.body };
-    
+
     // Convert empty strings to null for optional fields
     if (payload.superior !== undefined && payload.superior === "") {
       payload.superior = null;
     }
-    if (payload.formation_director !== undefined && payload.formation_director === "") {
+    if (
+      payload.formation_director !== undefined &&
+      payload.formation_director === ""
+    ) {
       payload.formation_director = null;
     }
     if (payload.location !== undefined && payload.location === "") {
@@ -549,7 +552,7 @@ const updateJourneyStage = async (req, res) => {
     if (payload.supervisor_id !== undefined && payload.supervisor_id === "") {
       payload.supervisor_id = null;
     }
-    
+
     if (payload.start_date) {
       const parsed = parseDateOnly(payload.start_date);
       if (!parsed) {

@@ -86,17 +86,37 @@ const getAllMissions = async (req, res) => {
       );
     }
 
-    // Apply data scope filter - missions are related to sisters
+    // Apply data scope filter - missions are related to sisters via vocation_journey
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
       "s",
       {
-        communityIdField: "s.current_community_id",
-        useJoin: false,
+        communityJoinTable: "vocation_journey",
+        communityJoinColumn: "sister_id",
+        communityIdColumn: "vj_scope.community_id",
+        currentOnly: false,
+        useJoin: true,
       }
     );
 
+    let joinClause = "";
     if (scopeWhere) {
+      joinClause = `
+        LEFT JOIN (
+          SELECT vj1.sister_id, vj1.community_id
+          FROM vocation_journey vj1
+          WHERE vj1.id = (
+            SELECT vj2.id 
+            FROM vocation_journey vj2 
+            WHERE vj2.sister_id = vj1.sister_id 
+            ORDER BY 
+              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+              vj2.start_date DESC,
+              vj2.id DESC
+            LIMIT 1
+          )
+        ) vj_scope ON s.id = vj_scope.sister_id
+      `;
       whereClauses.push(scopeWhere);
       params.push(...scopeParams);
     }
@@ -110,6 +130,7 @@ const getAllMissions = async (req, res) => {
       SELECT COUNT(*) as total
       FROM missions m
       INNER JOIN sisters s ON s.id = m.sister_id
+      ${joinClause}
       ${whereClause}
     `;
     const countResult = await MissionModel.executeQuery(countQuery, params);
@@ -121,6 +142,7 @@ const getAllMissions = async (req, res) => {
       `SELECT m.*, s.saint_name as religious_name, s.birth_name, s.birth_name as sister_name
        FROM missions m
        INNER JOIN sisters s ON s.id = m.sister_id
+       ${joinClause}
        ${whereClause}
        ORDER BY m.start_date DESC
        LIMIT ? OFFSET ?`,
@@ -432,17 +454,37 @@ const getSistersByMissionField = async (req, res) => {
     ];
     const params = [field];
 
-    // Apply data scope filter
+    // Apply data scope filter via vocation_journey
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
       "s",
       {
-        communityIdField: "s.current_community_id",
-        useJoin: false,
+        communityJoinTable: "vocation_journey",
+        communityJoinColumn: "sister_id",
+        communityIdColumn: "vj_scope.community_id",
+        currentOnly: false,
+        useJoin: true,
       }
     );
 
+    let joinClause = "";
     if (scopeWhere) {
+      joinClause = `
+        LEFT JOIN (
+          SELECT vj1.sister_id, vj1.community_id
+          FROM vocation_journey vj1
+          WHERE vj1.id = (
+            SELECT vj2.id 
+            FROM vocation_journey vj2 
+            WHERE vj2.sister_id = vj1.sister_id 
+            ORDER BY 
+              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+              vj2.start_date DESC,
+              vj2.id DESC
+            LIMIT 1
+          )
+        ) vj_scope ON s.id = vj_scope.sister_id
+      `;
       whereClauses.push(scopeWhere);
       params.push(...scopeParams);
     }
@@ -453,6 +495,7 @@ const getSistersByMissionField = async (req, res) => {
       `SELECT DISTINCT s.id, s.code, s.religious_name, m.field
        FROM missions m
        INNER JOIN sisters s ON s.id = m.sister_id
+       ${joinClause}
        ${whereClause}
        ORDER BY s.religious_name`,
       params
