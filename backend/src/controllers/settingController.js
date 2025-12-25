@@ -1,5 +1,10 @@
 // src/controllers/settingController.js
 const db = require("../config/database");
+const { exec } = require("child_process");
+const fs = require("fs").promises;
+const path = require("path");
+const util = require("util");
+const execPromise = util.promisify(exec);
 
 /**
  * Get all settings by group or all
@@ -310,29 +315,55 @@ const createBackup = async (req, res) => {
       .replace(/[:-]/g, "")
       .slice(0, 15);
     const filename = `backup_${timestamp}.sql`;
-    const filePath = `backups/${filename}`;
+    
+    // Ensure backups directory exists
+    const backupDir = path.join(__dirname, "../../backups");
+    await fs.mkdir(backupDir, { recursive: true });
+    
+    const fullPath = path.join(backupDir, filename);
+    const relativeFilePath = `backups/${filename}`;
+
+    // Get database config
+    const dbConfig = {
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASSWORD || "",
+      database: process.env.DB_NAME || "osp_db",
+    };
+
+    // Build mysqldump command
+    const mysqldumpCmd = `mysqldump -h ${dbConfig.host} -u ${dbConfig.user} ${dbConfig.password ? `-p${dbConfig.password}` : ""} ${dbConfig.database} --single-transaction --quick --lock-tables=false > "${fullPath}"`;
+
+    // Execute mysqldump
+    await execPromise(mysqldumpCmd);
+
+    // Get file size
+    const stats = await fs.stat(fullPath);
+    const fileSize = stats.size;
 
     // Insert backup record
     const [result] = await db.execute(
       `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by)
        VALUES (?, ?, ?, 'manual', 'completed', ?)`,
-      [filename, filePath, 0, userId]
+      [filename, relativeFilePath, fileSize, userId]
     );
-
-    // TODO: Implement actual database backup logic
 
     res.json({
       success: true,
       data: {
         id: result.insertId,
         filename,
-        file_path: filePath,
+        file_path: relativeFilePath,
+        file_size: fileSize,
       },
       message: "Đã tạo backup thành công",
     });
   } catch (error) {
     console.error("createBackup error:", error);
-    res.status(500).json({ success: false, message: "Lỗi khi tạo backup" });
+    res.status(500).json({ 
+      success: false, 
+      message: "Lỗi khi tạo backup: " + error.message 
+    });
   }
 };
 
@@ -354,17 +385,55 @@ const restoreBackup = async (req, res) => {
       });
     }
 
-    // TODO: Implement actual database restore logic
+    const backup = backups[0];
+    const fullPath = path.join(__dirname, "../../", backup.file_path);
+
+    // Check if file exists
+    try {
+      await fs.access(fullPath);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy file backup",
+      });
+    }
+
+    // Read SQL file
+    const sqlContent = await fs.readFile(fullPath, "utf-8");
+
+    // Get database config
+    const dbConfig = {
+      host: process.env.DB_HOST || "localhost",
+      user: process.env.DB_USER || "root",
+      password: process.env.DB_PASSWORD || "",
+      database: process.env.DB_NAME || "osp_db",
+    };
+
+    // Build mysql restore command
+    const mysqlCmd = `mysql -h ${dbConfig.host} -u ${dbConfig.user} ${dbConfig.password ? `-p${dbConfig.password}` : ""} ${dbConfig.database} < "${fullPath}"`;
+
+    // Execute restore
+    await execPromise(mysqlCmd);
+
+    // Log the restore action
+    const userId = req.user?.id;
+    if (userId) {
+      await db.execute(
+        `INSERT INTO audit_logs (user_id, action, table_name, description)
+         VALUES (?, 'restore', 'database', ?)`,
+        [userId, `Restored from backup: ${backup.filename}`]
+      );
+    }
 
     res.json({
       success: true,
-      message: "Đã khôi phục dữ liệu thành công (giả lập)",
+      message: "Đã khôi phục dữ liệu thành công",
     });
   } catch (error) {
     console.error("restoreBackup error:", error);
     res
       .status(500)
-      .json({ success: false, message: "Lỗi khi khôi phục backup" });
+      .json({ success: false, message: "Lỗi khi khôi phục backup: " + error.message });
   }
 };
 
@@ -386,10 +455,27 @@ const downloadBackup = async (req, res) => {
       });
     }
 
-    // TODO: Implement actual file download
-    res.json({
-      success: false,
-      message: "Tính năng đang phát triển",
+    const backup = backups[0];
+    const fullPath = path.join(__dirname, "../../", backup.file_path);
+
+    // Check if file exists
+    try {
+      await fs.access(fullPath);
+    } catch (err) {
+      return res.status(404).json({
+        success: false,
+        message: "Không tìm thấy file backup",
+      });
+    }
+
+    // Send file
+    res.download(fullPath, backup.filename, (err) => {
+      if (err) {
+        console.error("Download error:", err);
+        if (!res.headersSent) {
+          res.status(500).json({ success: false, message: "Lỗi khi tải file" });
+        }
+      }
     });
   } catch (error) {
     console.error("downloadBackup error:", error);
@@ -404,14 +490,30 @@ const deleteBackup = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const [result] = await db.execute("DELETE FROM backups WHERE id = ?", [id]);
+    // Get backup info first
+    const [backups] = await db.execute("SELECT * FROM backups WHERE id = ?", [
+      id,
+    ]);
 
-    if (result.affectedRows === 0) {
+    if (backups.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Không tìm thấy backup",
       });
     }
+
+    const backup = backups[0];
+    const fullPath = path.join(__dirname, "../../", backup.file_path);
+
+    // Delete file if exists
+    try {
+      await fs.unlink(fullPath);
+    } catch (err) {
+      console.warn("File not found or already deleted:", fullPath);
+    }
+
+    // Delete database record
+    const [result] = await db.execute("DELETE FROM backups WHERE id = ?", [id]);
 
     res.json({ success: true, message: "Đã xóa backup" });
   } catch (error) {
