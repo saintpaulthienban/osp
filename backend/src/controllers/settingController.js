@@ -321,16 +321,44 @@ const createBackup = async (req, res) => {
     // Use /tmp directory for temporary file (Railway-compatible)
     tempFilePath = path.join("/tmp", filename);
     
-    // Get database config
-    const dbConfig = {
-      host: process.env.DB_HOST || "localhost",
-      port: parseInt(process.env.DB_PORT || "3306"),
-      user: process.env.DB_USER || "root",
-      password: process.env.DB_PASSWORD || "",
-      database: process.env.DB_NAME || "osp_db",
-    };
+    // Get database config - support both URL and individual params
+    let dbConfig;
+    
+    if (process.env.MYSQL_URL || process.env.DATABASE_URL) {
+      // Parse connection URL (Railway format: mysql://user:pass@host:port/database)
+      const connectionUrl = process.env.MYSQL_URL || process.env.DATABASE_URL;
+      const urlPattern = /mysql:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/(.+?)(\?.*)?$/;
+      const match = connectionUrl.match(urlPattern);
+      
+      if (!match) {
+        throw new Error("Invalid MYSQL_URL format");
+      }
+      
+      dbConfig = {
+        host: match[3],
+        port: parseInt(match[4]),
+        user: match[1],
+        password: match[2],
+        database: match[5],
+      };
+    } else {
+      // Use individual environment variables (Railway or manual config)
+      dbConfig = {
+        host: process.env.MYSQLHOST || process.env.DB_HOST || "localhost",
+        port: parseInt(process.env.MYSQLPORT || process.env.DB_PORT || "3306"),
+        user: process.env.MYSQLUSER || process.env.DB_USER || "root",
+        password: process.env.MYSQLPASSWORD || process.env.DB_PASSWORD || "",
+        database: process.env.MYSQLDATABASE || process.env.DB_NAME || "osp_db",
+      };
+    }
 
     console.log("Creating backup with mysqldump library...");
+    console.log("Database config:", {
+      host: dbConfig.host,
+      port: dbConfig.port,
+      database: dbConfig.database,
+      user: dbConfig.user
+    });
 
     // Use mysqldump library to create SQL dump
     await mysqldump({
