@@ -389,7 +389,7 @@ const updateSister = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
+    // Check scope access - use getSisterCommunityIds to get community from vocation_journey
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,
@@ -511,7 +511,7 @@ const deleteSister = async (req, res) => {
       return res.status(404).json({ message: "Sister not found" });
     }
 
-    // Check scope access - use getSisterCommunityIds to get all communities from community_assignments
+    // Check scope access - use getSisterCommunityIds to get community from vocation_journey
     const hasAccess = await checkScopeAccess(
       req.userScope,
       id,

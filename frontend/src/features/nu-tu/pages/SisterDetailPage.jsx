@@ -1657,16 +1657,12 @@ const getHealthStatusColor = (status) => {
   return colors[status] || "secondary";
 };
 
-// Lấy giai đoạn hiện tại từ hành trình ơn gọi (gần nhất)
+// Lấy giai đoạn hiện tại từ hành trình ơn gọi (chỉ lấy giai đoạn chưa kết thúc - end_date IS NULL)
 const getCurrentStage = (vocationJourney) => {
   if (!vocationJourney || vocationJourney.length === 0) return null;
-  // Sắp xếp theo thời gian giảm dần và lấy giai đoạn hiện tại (chưa có end_date hoặc gần nhất)
-  const sorted = [...vocationJourney].sort(
-    (a, b) => new Date(b.start_date) - new Date(a.start_date)
-  );
-  // Ưu tiên giai đoạn chưa kết thúc
-  const current = sorted.find((j) => !j.end_date);
-  return current || sorted[0];
+  // Chỉ trả về giai đoạn có end_date = null (đang diễn ra)
+  const current = vocationJourney.find((j) => !j.end_date);
+  return current || null;
 };
 
 export default SisterDetailPage;

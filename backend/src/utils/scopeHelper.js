@@ -235,7 +235,7 @@ async function getSisterCommunityIds(sisterId) {
      LIMIT 1`,
     [sisterId]
   );
-  
+
   // Return array of community IDs (may be empty if no journey or null community_id)
   return rows.length > 0 && rows[0].community_id ? [rows[0].community_id] : [];
 }
