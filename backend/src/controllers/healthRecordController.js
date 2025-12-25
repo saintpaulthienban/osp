@@ -140,11 +140,14 @@ const addHealthRecord = async (req, res) => {
     };
 
     // Format dates for MySQL DATE columns (convert ISO strings to YYYY-MM-DD)
-    if (payload.checkup_date && typeof payload.checkup_date === 'string') {
-      payload.checkup_date = payload.checkup_date.split('T')[0];
+    if (payload.checkup_date && typeof payload.checkup_date === "string") {
+      payload.checkup_date = payload.checkup_date.split("T")[0];
     }
-    if (payload.next_checkup_date && typeof payload.next_checkup_date === 'string') {
-      payload.next_checkup_date = payload.next_checkup_date.split('T')[0];
+    if (
+      payload.next_checkup_date &&
+      typeof payload.next_checkup_date === "string"
+    ) {
+      payload.next_checkup_date = payload.next_checkup_date.split("T")[0];
     }
 
     const created = await HealthRecordModel.create(payload);
@@ -184,17 +187,20 @@ const updateHealthRecord = async (req, res) => {
 
     // Format dates for MySQL DATE columns (convert ISO strings to YYYY-MM-DD)
     const payload = { ...req.body };
-    
+
     // Remove system-managed fields that shouldn't be updated by client
     delete payload.id;
     delete payload.created_at;
     delete payload.updated_at;
-    
-    if (payload.checkup_date && typeof payload.checkup_date === 'string') {
-      payload.checkup_date = payload.checkup_date.split('T')[0];
+
+    if (payload.checkup_date && typeof payload.checkup_date === "string") {
+      payload.checkup_date = payload.checkup_date.split("T")[0];
     }
-    if (payload.next_checkup_date && typeof payload.next_checkup_date === 'string') {
-      payload.next_checkup_date = payload.next_checkup_date.split('T')[0];
+    if (
+      payload.next_checkup_date &&
+      typeof payload.next_checkup_date === "string"
+    ) {
+      payload.next_checkup_date = payload.next_checkup_date.split("T")[0];
     }
 
     const updated = await HealthRecordModel.update(id, payload);
@@ -296,17 +302,37 @@ const getAllHealthRecords = async (req, res) => {
       );
     }
 
-    // Add scope filter
+    // Add scope filter via vocation_journey
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
       "s",
       {
-        communityIdField: "s.current_community_id",
-        useJoin: false,
+        communityJoinTable: "vocation_journey",
+        communityJoinColumn: "sister_id",
+        communityIdColumn: "vj_scope.community_id",
+        currentOnly: false,
+        useJoin: true,
       }
     );
 
+    let joinClause = "";
     if (scopeWhere) {
+      joinClause = `
+        LEFT JOIN (
+          SELECT vj1.sister_id, vj1.community_id
+          FROM vocation_journey vj1
+          WHERE vj1.id = (
+            SELECT vj2.id 
+            FROM vocation_journey vj2 
+            WHERE vj2.sister_id = vj1.sister_id 
+            ORDER BY 
+              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+              vj2.start_date DESC,
+              vj2.id DESC
+            LIMIT 1
+          )
+        ) vj_scope ON s.id = vj_scope.sister_id
+      `;
       whereClauses.push(scopeWhere);
       params.push(...scopeParams);
     }
@@ -318,6 +344,7 @@ const getAllHealthRecords = async (req, res) => {
       SELECT COUNT(*) as total 
       FROM health_records hr
       LEFT JOIN sisters s ON hr.sister_id = s.id
+      ${joinClause}
       WHERE ${whereClause}
     `;
     const countResult = await HealthRecordModel.executeQuery(countSql, params);

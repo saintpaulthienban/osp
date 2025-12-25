@@ -72,17 +72,37 @@ const getDepartureRecords = async (req, res) => {
       params.push(searchPattern, searchPattern, searchPattern, searchPattern);
     }
 
-    // Add scope filter
+    // Add scope filter via vocation_journey
     const { whereClause: scopeWhere, params: scopeParams } = applyScopeFilter(
       req.userScope,
       "s",
       {
-        communityIdField: "s.current_community_id",
-        useJoin: false,
+        communityJoinTable: "vocation_journey",
+        communityJoinColumn: "sister_id",
+        communityIdColumn: "vj_scope.community_id",
+        currentOnly: false,
+        useJoin: true,
       }
     );
 
+    let joinClause = "";
     if (scopeWhere) {
+      joinClause = `
+        LEFT JOIN (
+          SELECT vj1.sister_id, vj1.community_id
+          FROM vocation_journey vj1
+          WHERE vj1.id = (
+            SELECT vj2.id 
+            FROM vocation_journey vj2 
+            WHERE vj2.sister_id = vj1.sister_id 
+            ORDER BY 
+              CASE WHEN vj2.end_date IS NULL THEN 0 ELSE 1 END,
+              vj2.start_date DESC,
+              vj2.id DESC
+            LIMIT 1
+          )
+        ) vj_scope ON s.id = vj_scope.sister_id
+      `;
       whereClauses.push(scopeWhere);
       params.push(...scopeParams);
     }
@@ -97,6 +117,7 @@ const getDepartureRecords = async (req, res) => {
       SELECT COUNT(*) as total 
       FROM departure_records d
       LEFT JOIN sisters s ON d.sister_id = s.id
+      ${joinClause}
       ${whereSQL}
     `;
     const countResult = await DepartureRecordModel.executeQuery(
@@ -111,6 +132,7 @@ const getDepartureRecords = async (req, res) => {
              s.saint_name, s.birth_name, s.code as sister_code
       FROM departure_records d
       LEFT JOIN sisters s ON d.sister_id = s.id
+      ${joinClause}
       ${whereSQL}
       ORDER BY d.departure_date DESC
       LIMIT ? OFFSET ?
