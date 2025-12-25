@@ -99,8 +99,11 @@ const BackupSettingsPage = () => {
   const handleDownload = async (backup) => {
     try {
       const result = await settingService.downloadBackup(backup.id);
-      if (result.success) {
-        // Create download link
+      if (result.success && result.download_url) {
+        // If Firebase URL is returned, open it directly
+        window.open(result.download_url, "_blank");
+      } else if (result.success) {
+        // For local files, create blob download
         const url = window.URL.createObjectURL(new Blob([result.data]));
         const link = document.createElement("a");
         link.href = url;
@@ -110,9 +113,10 @@ const BackupSettingsPage = () => {
         link.remove();
         window.URL.revokeObjectURL(url);
       } else {
-        setMessage({ type: "danger", text: result.error });
+        setMessage({ type: "danger", text: result.error || "Lỗi khi tải file" });
       }
     } catch (error) {
+      console.error("Download error:", error);
       setMessage({ type: "danger", text: "Lỗi khi tải bản sao lưu!" });
     }
   };

@@ -1,10 +1,10 @@
 // src/controllers/settingController.js
 const db = require("../config/database");
-const { exec } = require("child_process");
+const mysqldump = require("mysqldump");
 const fs = require("fs").promises;
+const fsSync = require("fs");
 const path = require("path");
-const util = require("util");
-const execPromise = util.promisify(exec);
+const { getBucket } = require("../config/firebase");
 
 /**
  * Get all settings by group or all
@@ -305,9 +305,11 @@ const getBackups = async (req, res) => {
 };
 
 /**
- * Create new backup
+ * Create new backup using mysqldump npm package and upload to Firebase
  */
 const createBackup = async (req, res) => {
+  let tempFilePath = null;
+  
   try {
     const userId = req.user.id;
     const timestamp = new Date()
@@ -316,36 +318,114 @@ const createBackup = async (req, res) => {
       .slice(0, 15);
     const filename = `backup_${timestamp}.sql`;
     
-    // Ensure backups directory exists
-    const backupDir = path.join(__dirname, "../../backups");
-    await fs.mkdir(backupDir, { recursive: true });
+    // Use /tmp directory for temporary file (Railway-compatible)
+    tempFilePath = path.join("/tmp", filename);
     
-    const fullPath = path.join(backupDir, filename);
-    const relativeFilePath = `backups/${filename}`;
-
     // Get database config
     const dbConfig = {
       host: process.env.DB_HOST || "localhost",
+      port: parseInt(process.env.DB_PORT || "3306"),
       user: process.env.DB_USER || "root",
       password: process.env.DB_PASSWORD || "",
       database: process.env.DB_NAME || "osp_db",
     };
 
-    // Build mysqldump command
-    const mysqldumpCmd = `mysqldump -h ${dbConfig.host} -u ${dbConfig.user} ${dbConfig.password ? `-p${dbConfig.password}` : ""} ${dbConfig.database} --single-transaction --quick --lock-tables=false > "${fullPath}"`;
+    console.log("Creating backup with mysqldump library...");
 
-    // Execute mysqldump
-    await execPromise(mysqldumpCmd);
+    // Use mysqldump library to create SQL dump
+    await mysqldump({
+      connection: {
+        host: dbConfig.host,
+        port: dbConfig.port,
+        user: dbConfig.user,
+        password: dbConfig.password,
+        database: dbConfig.database,
+      },
+      dumpToFile: tempFilePath,
+      dump: {
+        schema: {
+          table: {
+            dropIfExist: true,
+          },
+        },
+      },
+    });
+
+    console.log("Backup file created:", tempFilePath);
 
     // Get file size
-    const stats = await fs.stat(fullPath);
+    const stats = await fs.stat(tempFilePath);
     const fileSize = stats.size;
+
+    console.log("Backup file size:", fileSize);
+
+    // Try to upload to Firebase Storage
+    const bucket = getBucket();
+    let downloadUrl = null;
+    let storagePath = null;
+
+    if (bucket) {
+      try {
+        const firebaseDestination = `backups/${filename}`;
+        
+        await bucket.upload(tempFilePath, {
+          destination: firebaseDestination,
+          metadata: {
+            contentType: "application/sql",
+            metadata: {
+              createdBy: userId.toString(),
+              createdAt: new Date().toISOString(),
+            },
+          },
+        });
+
+        console.log("Uploaded to Firebase:", firebaseDestination);
+
+        // Get signed URL for download (expires in 7 days)
+        const file = bucket.file(firebaseDestination);
+        const [url] = await file.getSignedUrl({
+          action: "read",
+          expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days
+        });
+
+        downloadUrl = url;
+        storagePath = firebaseDestination;
+        
+        console.log("Firebase download URL generated");
+      } catch (uploadError) {
+        console.warn("Firebase upload failed, falling back to local storage:", uploadError.message);
+      }
+    } else {
+      console.warn("Firebase not configured, storing locally only");
+    }
+
+    // If Firebase upload failed, store locally
+    if (!storagePath) {
+      const backupDir = path.join(__dirname, "../../backups");
+      await fs.mkdir(backupDir, { recursive: true });
+      
+      const localPath = path.join(backupDir, filename);
+      await fs.copyFile(tempFilePath, localPath);
+      
+      storagePath = `backups/${filename}`;
+      console.log("Backup saved locally:", localPath);
+    }
+
+    // Clean up temp file
+    try {
+      if (tempFilePath && fsSync.existsSync(tempFilePath)) {
+        fsSync.unlinkSync(tempFilePath);
+        console.log("Temp file cleaned up");
+      }
+    } catch (cleanupError) {
+      console.warn("Failed to cleanup temp file:", cleanupError.message);
+    }
 
     // Insert backup record
     const [result] = await db.execute(
-      `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by)
-       VALUES (?, ?, ?, 'manual', 'completed', ?)`,
-      [filename, relativeFilePath, fileSize, userId]
+      `INSERT INTO backups (filename, file_path, file_size, backup_type, status, created_by, download_url)
+       VALUES (?, ?, ?, 'manual', 'completed', ?, ?)`,
+      [filename, storagePath, fileSize, userId, downloadUrl]
     );
 
     res.json({
@@ -353,13 +433,24 @@ const createBackup = async (req, res) => {
       data: {
         id: result.insertId,
         filename,
-        file_path: relativeFilePath,
+        file_path: storagePath,
         file_size: fileSize,
+        download_url: downloadUrl,
       },
       message: "Đã tạo backup thành công",
     });
   } catch (error) {
     console.error("createBackup error:", error);
+    
+    // Clean up temp file on error
+    try {
+      if (tempFilePath && fsSync.existsSync(tempFilePath)) {
+        fsSync.unlinkSync(tempFilePath);
+      }
+    } catch (cleanupError) {
+      // Ignore cleanup errors
+    }
+    
     res.status(500).json({ 
       success: false, 
       message: "Lỗi khi tạo backup: " + error.message 
@@ -438,7 +529,7 @@ const restoreBackup = async (req, res) => {
 };
 
 /**
- * Download backup
+ * Download backup - supports both Firebase and local storage
  */
 const downloadBackup = async (req, res) => {
   try {
@@ -456,9 +547,20 @@ const downloadBackup = async (req, res) => {
     }
 
     const backup = backups[0];
+
+    // If backup has download_url (Firebase), redirect to it
+    if (backup.download_url) {
+      return res.json({
+        success: true,
+        download_url: backup.download_url,
+        message: "Use download_url to download the file",
+      });
+    }
+
+    // Otherwise, try local file
     const fullPath = path.join(__dirname, "../../", backup.file_path);
 
-    // Check if file exists
+    // Check if file exists locally
     try {
       await fs.access(fullPath);
     } catch (err) {
