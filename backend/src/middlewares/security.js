@@ -9,27 +9,18 @@ const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
 const parseAllowedOrigins = () => {
   const { CORS_ORIGIN } = process.env;
-  const fromEnv = CORS_ORIGIN
-    ? CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean)
-    : [];
+  if (!CORS_ORIGIN) {
+    return [];
+  }
 
-  // Also allow common frontend env vars to be picked up automatically
-  const extras = [
-    process.env.FRONTEND_URL,
-    process.env.CLIENT_URL,
-    process.env.FRONTEND_ORIGIN,
-    process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`,
-    process.env.NETLIFY_URL && `https://${process.env.NETLIFY_URL}`,
-  ].filter(Boolean);
-
-  return Array.from(new Set([...fromEnv, ...extras]));
+  return CORS_ORIGIN.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 };
 
 const buildCorsOptions = () => {
   const allowedOrigins = parseAllowedOrigins();
   const allowAllOrigins = allowedOrigins.includes("*");
-
-  console.log('CORS allowed origins:', allowedOrigins);
 
   // Development localhost origins
   const localhostOrigins = [
@@ -143,6 +134,9 @@ const applySecurityMiddlewares = (app) => {
     app.use("/api/auth/login", loginRateLimiter);
   }
 };
+
+// Log the CORS_ORIGIN environment variable for debugging
+console.log(`CORS_ORIGIN environment variable: ${process.env.CORS_ORIGIN}`);
 
 module.exports = {
   applySecurityMiddlewares,
